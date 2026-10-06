@@ -7,23 +7,24 @@ let currentLanguage = (()=>{ try{return localStorage.getItem(LANG_KEY)==='pt'?'p
 const PT_UI = Object.freeze({
   'Investor Project Portal':'Portal do Projeto do Investidor',
   'For Such a Time as This':'Para um tempo como este',
-  'Your home. Your investment. Completely visible.':'Sua casa. Seu investimento. Totalmente visível.',
-  'A private, investor-friendly portal for construction progress, schedules, project photos, financial visibility, and milestone updates — all in one beautifully organized place.':'Um portal privado e intuitivo para acompanhar o andamento da obra, cronogramas, fotos do projeto, informações financeiras e marcos importantes — tudo organizado em um só lugar.',
+  'Build with confidence. Invest with complete visibility.':'Construa com confiança. Invista com total visibilidade.',
+  'Follow every milestone of your Kairos project — from construction progress and photos to capital deployment, expense approvals, and completion — through one secure investor experience.':'Acompanhe cada marco do seu projeto Kairos — do andamento da obra e fotos à aplicação do capital, aprovações de despesas e conclusão — em uma experiência segura para o investidor.',
   '24/7':'24/7',
-  'secure project visibility':'visibilidade segura do projeto',
-  '1 place':'1 lugar',
-  'schedule, photos & spend':'cronograma, fotos e custos',
+  'Real-time':'Em tempo real',
+  'Secure':'Seguro',
+  'project progress':'progresso do projeto',
+  'Transparent':'Transparente',
+  'budget & expenses':'orçamento e despesas',
   'Private':'Privado',
-  'project-by-project access':'acesso separado por projeto',
+  'authorized project access':'acesso autorizado ao projeto',
   'Investor Portal':'Portal do Investidor',
   'Welcome back':'Bem-vindo de volta',
-  'Sign in to view your construction project or administer client accounts.':'Entre para acompanhar seu projeto de construção ou administrar contas de clientes.',
-  'Demo access':'Acesso de demonstração',
+  'Securely access your project dashboard, construction milestones, photos, financial activity, and approvals.':'Acesse com segurança o painel do seu projeto, marcos da construção, fotos, movimentação financeira e aprovações.',
   'Email address':'Endereço de e-mail',
   'Password':'Senha',
   'Sign in securely':'Entrar com segurança',
   'Signing in…':'Entrando…',
-  'Shared login is enabled. Accounts created by the administrator can sign in from a phone, tablet, or another computer.':'O login compartilhado está ativado. Contas criadas pelo administrador podem entrar por celular, tablet ou outro computador.',
+  'Private access for authorized Kairos Legacy Homes investors and project clients.':'Acesso privado para investidores e clientes de projeto autorizados da Kairos Legacy Homes.',
   'Overview':'Visão geral',
   'Schedule':'Cronograma',
   'Photos':'Fotos',
@@ -39,7 +40,7 @@ const PT_UI = Object.freeze({
   'Notifications & approvals':'Notificações e aprovações',
   'No project is assigned to this account yet.':'Nenhum projeto foi atribuído a esta conta ainda.',
   'Project overview':'Visão geral do projeto',
-  'A clear snapshot of schedule, construction progress, and investment activity.':'Uma visão clara do cronograma, do progresso da construção e da atividade de investimento.',
+  'Your investor dashboard for construction milestones, capital deployed, budget position, approvals, and the latest project progress.':'Seu painel do investidor para acompanhar marcos da construção, capital aplicado, posição do orçamento, aprovações e o progresso mais recente do projeto.',
   'View latest photos':'Ver fotos recentes',
   'Open schedule':'Abrir cronograma',
   'Project location':'Local do projeto',
@@ -1065,16 +1066,15 @@ function logoMark(){ return `<div class="brand-mark"><svg viewBox="0 0 40 40" fi
 function loginTemplate(){ return `<div class="auth-shell">${languageSwitcher('auth-language')}
   <section class="auth-visual">
     <div class="brand">${logoMark()}<div class="brand-copy"><strong>Kairos Legacy Homes</strong><span>Investor Project Portal</span></div></div>
-    <div class="auth-hero"><div class="auth-kicker">For Such a Time as This</div><h1>Your home. Your investment. Completely visible.</h1><p>A private, investor-friendly portal for construction progress, schedules, project photos, financial visibility, and milestone updates — all in one beautifully organized place.</p></div>
-    <div class="auth-stats"><div class="auth-stat"><strong>24/7</strong><span>secure project visibility</span></div><div class="auth-stat"><strong>1 place</strong><span>schedule, photos & spend</span></div><div class="auth-stat"><strong>Private</strong><span>project-by-project access</span></div></div>
+    <div class="auth-hero"><div class="auth-kicker">For Such a Time as This</div><h1>Build with confidence. Invest with complete visibility.</h1><p>Follow every milestone of your Kairos project — from construction progress and photos to capital deployment, expense approvals, and completion — through one secure investor experience.</p></div>
+    <div class="auth-stats"><div class="auth-stat"><strong>Real-time</strong><span>project progress</span></div><div class="auth-stat"><strong>Transparent</strong><span>budget & expenses</span></div><div class="auth-stat"><strong>Secure</strong><span>authorized project access</span></div></div>
   </section>
   <section class="auth-panel"><form class="login-card" id="loginForm">
-    <div class="auth-kicker" style="color:#8c6b2e">Investor Portal</div><h2>Welcome back</h2><p class="sub">Sign in to view your construction project or administer client accounts.</p>
-    <div class="demo-box"><strong>Demo access</strong><br>Admin: admin@kairoslegacyhomes.com / Kairos2026!<br>Investor: investor1@demo.com / Investor1!</div>
+    <div class="auth-kicker" style="color:#8c6b2e">Investor Portal</div><h2>Welcome back</h2><p class="sub">Securely access your project dashboard, construction milestones, photos, financial activity, and approvals.</p>
     <div class="field"><label>Email address</label><input class="input" id="email" type="email" autocomplete="username" placeholder="you@example.com" required></div>
     <div class="field"><label>Password</label><input class="input" id="password" type="password" autocomplete="current-password" placeholder="••••••••" required></div>
     <button class="btn btn-primary login-btn" type="submit">Sign in securely</button>
-    <div class="login-foot">Shared login is enabled. Accounts created by the administrator can sign in from a phone, tablet, or another computer.</div>
+    <div class="login-foot">Private access for authorized Kairos Legacy Homes investors and project clients.</div>
   </form></section>
 </div>`; }
 
@@ -1170,7 +1170,7 @@ function overviewTemplate(p){
   const synced=p.scheduleSource?`<span class="schedule-sync-note">Schedule synced ${fmtDate(p.scheduleSource.importedDate)} from Excel</span>`:'';
   const overviewPhases=overviewPhaseWindow(p.tasks);
   const timelineOrder=p.tasks.slice().sort((a,b)=>(a.start||'9999-12-31').localeCompare(b.start||'9999-12-31') || (a.end||'9999-12-31').localeCompare(b.end||'9999-12-31') || String(a.code||'').localeCompare(String(b.code||'')));
-  return `<div class="page-head"><div><h1>Project overview</h1><p>A clear snapshot of schedule, construction progress, and investment activity.</p>${synced}</div><div class="head-actions"><button class="btn btn-outline" data-goto="photos">View latest photos</button><button class="btn btn-primary" data-goto="schedule">Open schedule</button></div></div>
+  return `<div class="page-head"><div><h1>Project overview</h1><p>Your investor dashboard for construction milestones, capital deployed, budget position, approvals, and the latest project progress.</p>${synced}</div><div class="head-actions"><button class="btn btn-outline" data-goto="photos">View latest photos</button><button class="btn btn-primary" data-goto="schedule">Open schedule</button></div></div>
 <div class="hero-card card"><div class="eyebrow">${p.status}</div><h2>${p.name}</h2><p>${p.summary}</p><div class="hero-meta"><div><strong>${p.address}</strong><span>Project location</span></div><div><strong>${fmtDate(p.start)}</strong><span>Construction start</span></div><div><strong>${fmtDate(p.target)}</strong><span>Target completion</span></div><div><strong>${fmtDate(p.lastUpdate)}</strong><span>Last project update</span></div></div></div>
 <div class="grid grid-4" style="margin-top:18px"><div class="card metric"><span class="label">Project completion</span><div class="value">${p.completion}%</div><div class="progress"><span style="width:${p.completion}%"></span></div><div class="metric-icon">${svgIcon('schedule')}</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${p.budget?Math.round((p.invested/p.budget)*100):0}% of project budget</div><div class="metric-icon">${svgIcon('money')}</div></div><div class="card metric"><span class="label">Remaining budget</span><div class="value">${money(remaining)}</div><div class="muted" style="font-size:12px">Total budget ${money(p.budget)}</div></div><div class="card metric"><span class="label">Current / next phase</span><div class="value" style="font-size:19px;line-height:1.3">${next?escapeHtml(localizedPhaseName(next.name)):translateVisibleText('Project Complete')}</div><div class="muted" style="font-size:12px">${next?taskStatusLabel(next):'All milestones complete'}</div></div></div>
 <div class="grid grid-2" style="margin-top:18px"><div class="card"><div class="card-head"><div><h3>Construction phases</h3><span class="muted overview-phase-caption">10 previous phases + current + next upcoming phase</span></div><span class="muted">${p.tasks.filter(x=>taskStatus(x)==='done').length} of ${p.tasks.length} completed</span></div>${overviewPhases.map(t=>phaseRow(t,Math.max(0,timelineOrder.indexOf(t)))).join('')||'<div class="empty">No construction phases yet.</div>'}</div><div class="card"><div class="card-head"><h3>Latest project photos</h3><button class="btn btn-soft" data-goto="photos">View all</button></div><div class="gallery" style="grid-template-columns:1fr 1fr">${p.photos.slice(-4).reverse().map(photoCard).join('')||'<div class="empty">No photos uploaded yet.</div>'}</div></div></div>`;

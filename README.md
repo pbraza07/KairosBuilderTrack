@@ -1,6 +1,14 @@
-# Kairos Legacy Homes — Investor Project Portal v2.4
+# Kairos Legacy Homes — Investor Project Portal v2.5
 
-## v2.4 — Complete bilingual display coverage
+## v2.5 — Investor-focused login experience
+
+- Removed all visible demo/access credential information from the login page.
+- Reworked the landing-page message around investor confidence, transparency, capital visibility, approvals, and construction milestones.
+- Updated the secure-login description so the page presents as a production investor portal rather than a technical/demo interface.
+- Updated the Overview-page subtitle to emphasize capital deployed, budget position, approvals, milestones, and current project progress.
+- English and Brazilian Portuguese display text were updated together.
+
+## v1.9 — Complete bilingual display coverage
 
 This release expands the English / Brazilian Portuguese language switcher across the full portal. In Portuguese mode, navigation, dashboards, schedule labels, Gantt/list views, admin tables, Excel synchronization messages, investment/budget helper text, approvals/history, and the standard construction phase names from the Kairos Excel schedule are translated for display.
 
@@ -161,14 +169,14 @@ Older photos remain compatible. Replacing a legacy photo through Edit will autom
 
 > For a very large production photo archive (thousands of images), object storage such as S3/R2/Supabase Storage is still preferable to storing image payloads inside the portal database. This version substantially reduces the footprint of the current shared-storage architecture.
 
-## v2.4 schedule visualization
+## v2.1 schedule visualization
 - Added a category color legend to the Gantt schedule.
 - Added Monthly and Weekly schedule views.
 - Monthly columns are weighted by the number of days in each month so day-level bar placement aligns more closely with calendar dates.
 - Weekly view uses Monday-Sunday blocks and displays ISO week numbers.
 - Phase bars retain category colors and precise day-based start/end positioning.
 
-## v2.4 schedule bar update
+## v2.2 schedule bar update
 - Phase bars now display the planned duration in days inside each bar.
 - Completed = lime green, Current = bright yellow, Past due = bright red, Upcoming = bright orange.
 - Category colors remain on category headers/chips so schedule grouping remains visually distinct.
