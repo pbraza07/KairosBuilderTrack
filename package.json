@@ -1,0 +1,13 @@
+{
+  "name": "kairos-legacy-homes-investor-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kairos Legacy Homes investor construction progress portal - Render-ready prototype",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
