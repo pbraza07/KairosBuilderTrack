@@ -172,3 +172,29 @@ a{color:inherit}
 }
 .btn-danger-soft{background:#fff5f5;border:1px solid #efcdcd;color:#a23b3b}
 .btn-danger-soft:hover{background:#fbeaea;border-color:#e7b9b9}
+
+
+/* v1.4 admin phase editing + storage-aware photo uploads */
+.btn-compact{padding:7px 10px;font-size:12px;gap:5px;white-space:nowrap}
+.btn-compact svg{width:14px;height:14px}
+.phase-actions{flex-wrap:nowrap;min-width:112px}
+.phase-edit-note{margin:0 0 16px;padding:11px 13px;border:1px solid #dbe6e0;background:#f5f8f6;border-radius:10px;color:#53645c;font-size:12px;line-height:1.55}
+.photo-optimize-status{min-height:44px;display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#f8faf9;color:#69756f;font-size:12px;line-height:1.45}
+.photo-opt-dot{width:8px;height:8px;border-radius:50%;background:#a7b2ac;flex:0 0 auto}
+.photo-optimize-status.ready{border-color:#d8dfb8;background:#fbfbf2;color:#667043}.photo-optimize-status.ready .photo-opt-dot{background:#a9993d}
+.photo-optimize-status.working{border-color:#cbdcd4;background:#f1f7f4;color:#315d4c}.photo-optimize-status.working .photo-opt-dot{background:#3c7a61;animation:kairosPulse 1s infinite alternate}
+.photo-optimize-status.success{border-color:#b9d8ca;background:#eff8f3;color:#225e46}.photo-optimize-status.success .photo-opt-dot{background:#2f8a61}
+.photo-optimize-status.error{border-color:#ecc9c9;background:#fff4f4;color:#8f3838}.photo-optimize-status.error .photo-opt-dot{background:#b95050}
+.storage-size{font-size:12px;color:#53645c;white-space:nowrap}
+@keyframes kairosPulse{from{opacity:.35;transform:scale(.8)}to{opacity:1;transform:scale(1.15)}}
+@media(max-width:760px){.phase-actions{min-width:100px}.btn-compact{padding:7px 9px}.admin-subsection .table td:last-child{width:auto}}
+
+
+/* v1.5 construction category grouping + expense financial behavior */
+.phase-category-chip{display:inline-flex;margin-top:5px;width:max-content;max-width:100%;font-style:normal;font-size:9px;font-weight:700;color:#50685e;background:#eef4f1;border:1px solid #dde7e2;border-radius:99px;padding:3px 7px;line-height:1.2}
+.schedule-category-summary{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px 18px;background:#f7faf8;border-bottom:1px solid var(--line);font-size:11px}.schedule-category-summary strong{font-size:12px;color:var(--forest)}.schedule-category-summary span{color:var(--muted);text-align:right}
+.gantt-category-row{display:grid;align-items:center;min-height:37px;background:linear-gradient(90deg,#edf4f0,#fafcfb);border-top:1px solid #dbe5e1;border-bottom:1px solid #e6ece9}.gantt-category-row>div:first-child{grid-column:1;padding:8px 12px 8px 0}.gantt-category-row strong{display:block;font-size:11px;color:var(--forest);text-transform:uppercase;letter-spacing:.45px}.gantt-category-row span{font-size:9px;color:var(--muted)}.gantt-category-line{grid-column:2/-1;height:1px;background:#dfe8e4;margin-right:8px}
+.schedule-category-row td{padding:10px 15px!important;background:#edf4f0!important;border-top:1px solid #d7e3de;border-bottom:1px solid #d7e3de}.schedule-category-row td>div{display:flex;align-items:center;justify-content:space-between;gap:12px}.schedule-category-row strong{font-size:11px!important;text-transform:uppercase;letter-spacing:.5px;color:var(--forest)}.schedule-category-row span{font-size:10px;color:var(--muted)}
+.category-inline{display:block;margin-top:4px;font-size:9px;color:#61736b;font-weight:600;white-space:normal}.category-admin-chip{display:inline-block;max-width:230px;white-space:normal;font-size:9px;line-height:1.35;padding:4px 7px;border-radius:8px;background:#eef4f1;color:#46675a;border:1px solid #dde7e2}
+.expense-budget-note{display:grid;gap:4px;margin-bottom:16px;padding:12px 13px;border-radius:12px;background:#f2f7f4;border:1px solid #dbe7e1}.expense-budget-note strong{font-size:11px;color:var(--forest)}.expense-budget-note span{font-size:11px;color:#53665e;line-height:1.5}
+@media(max-width:820px){.schedule-category-summary{align-items:flex-start;flex-direction:column}.schedule-category-summary span{text-align:left}.phase-category-chip{max-width:220px}}

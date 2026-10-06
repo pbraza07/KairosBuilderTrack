@@ -30,6 +30,57 @@ const sampleSvg = (title, subtitle, tones=['#d8dedb','#6e7c76','#15382f']) => {
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
 };
 
+
+const PHASE_CATEGORIES = [
+  'Pre-Construction, Design & Permitting',
+  'Site Preparation & Temporary Services',
+  'Foundation & Underground',
+  'Structure & Framing',
+  'Building Envelope & Exterior',
+  'MEP Rough-In & Utilities',
+  'Insulation & Drywall',
+  'Septic, Well & Water Systems',
+  'Interior Finishes',
+  'Site Improvements & Landscaping',
+  'Testing, Startup & Punch',
+  'Final Inspections & Turnover',
+  'Other / General'
+];
+
+function phaseSearchText(name='',code=''){
+  return `${code} ${name}`.toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function hasAny(text,terms=[]){ return terms.some(term=>text.includes(term)); }
+function inferPhaseCategory(name='',code=''){
+  const t=phaseSearchText(name,code);
+  const numericCode=parseInt(String(code||'').replace(/\D/g,''),10);
+  if(Number.isFinite(numericCode) && numericCode>=180 && numericCode<=183) return 'Septic, Well & Water Systems';
+  // Final inspections are checked first so they are not swallowed by the trade-specific MEP rules.
+  if(hasAny(t,['building final inspection','electrical final inspection','mechanical final inspection','plumbing final inspection','utility inspection final','final building','driveway final inspection','final inspection'])) return 'Final Inspections & Turnover';
+  if(hasAny(t,['architectural','engineering design','load calc','survey','topo','print plans','stamp with engineer','permit'])) return 'Pre-Construction, Design & Permitting';
+  if(hasAny(t,['cleaning lot','boundary stake','rough stake','house stake','fill dirt','pad','portable toilet','dumpster delivery','remove dumpster','remove portable toilet'])) return 'Site Preparation & Temporary Services';
+  if(hasAny(t,['prepare the rail','prepair the rail','compaction','underground','prepare slab','prepair slab','slab inspection','pouring slab','slab','sewer tap inspection','water line inspection'])) return 'Foundation & Underground';
+  if(hasAny(t,['exterior masonry','truss','lintel','framing','sheathing'])) return 'Structure & Framing';
+  if(hasAny(t,['exterior door','install windows','window','underlayment','dry in','shingle','lathe','stucco','soffit','garage door','painting exterior'])) return 'Building Envelope & Exterior';
+  if(hasAny(t,['septic','well installation','water hook up','water meter'])) return 'Septic, Well & Water Systems';
+  if(hasAny(t,['plumbing rough','hvac rough','electrical rough','meter can','tug inspection','utility','utilities','electrical meter','plumbing','hvac','electrical'])) return 'MEP Rough-In & Utilities';
+  if(hasAny(t,['insulation','insullation','blown insulation','drywall'])) return 'Insulation & Drywall';
+  if(hasAny(t,['cabinet','countertop','tile flooring','tile wall','grout','vinyl','flooring','painting interior','final painting','painting caulking','painting front door','baseboard','casing','door knob','door stop','light fixture','plumbing fixture','mirror','blind','shel','appliance','prime flooring','wet walls'])) return 'Interior Finishes';
+  if(hasAny(t,['driveway','culvert','final grading','grading','asphalt','site drainage','mailbox','sod','clean out pad','termite bait'])) return 'Site Improvements & Landscaping';
+  if(hasAny(t,['pre power','electrical starting','hvac starting','blown door','rough punch','punchout','final cleaning','hook up inspection'])) return 'Testing, Startup & Punch';
+  return 'Other / General';
+}
+function categoryRank(category){ const i=PHASE_CATEGORIES.indexOf(category); return i<0?PHASE_CATEGORIES.length:i; }
+function taskCategory(t){ return t?.category || inferPhaseCategory(t?.name||'',t?.code||''); }
+function groupedTasks(tasks=[]){
+  const groups=new Map();
+  tasks.forEach(t=>{ const category=taskCategory(t); if(!groups.has(category))groups.set(category,[]); groups.get(category).push(t); });
+  return [...groups.entries()].sort((a,b)=>categoryRank(a[0])-categoryRank(b[0])).map(([category,items])=>({category,items:items.slice().sort((a,b)=>(a.start||'9999').localeCompare(b.start||'9999') || String(a.code||'').localeCompare(String(b.code||'')))}));
+}
+function phaseCategoryOptions(selected=''){
+  return `<option value="">Auto-detect from phase name</option>${PHASE_CATEGORIES.map(c=>`<option value="${attr(c)}" ${selected===c?'selected':''}>${escapeHtml(c)}</option>`).join('')}`;
+}
+
 const seed = {
   users:[
     {id:'u-admin',name:'Plinio Alves',email:'admin@kairoslegacyhomes.com',password:'Kairos2026!',role:'admin',projectIds:['p-001','p-002']},
@@ -89,8 +140,8 @@ function normalizeState(raw){
     p.tasks=Array.isArray(p.tasks)?p.tasks:[];
     p.photos=Array.isArray(p.photos)?p.photos:[];
     p.expenses=Array.isArray(p.expenses)?p.expenses:[];
-    p.tasks=p.tasks.map(t=>({...t,id:t.id||uid('t'),code:t.code??'',name:t.name||'Untitled phase',progress:Number(t.progress)||0,duration:Number(t.duration)||daysBetweenInclusive(t.start,t.end)}));
-    p.photos=p.photos.map(ph=>({...ph,id:ph.id||uid('ph'),title:ph.title||'Project photo',date:ph.date||todayISO(),phase:ph.phase||'',url:ph.url||''}));
+    p.tasks=p.tasks.map(t=>({...t,id:t.id||uid('t'),code:t.code??'',name:t.name||'Untitled phase',category:t.category||inferPhaseCategory(t.name||'',t.code||''),progress:Number(t.progress)||0,duration:Number(t.duration)||daysBetweenInclusive(t.start,t.end),trade:t.trade||'',notes:t.notes||''}));
+    p.photos=p.photos.map(ph=>({...ph,id:ph.id||uid('ph'),title:ph.title||'Project photo',date:ph.date||todayISO(),phase:ph.phase||'',url:ph.url||'',mime:ph.mime||'',optimizedBytes:Number(ph.optimizedBytes||ph.bytes)||0,originalBytes:Number(ph.originalBytes)||0,width:Number(ph.width)||0,height:Number(ph.height)||0,originalName:ph.originalName||''}));
     p.expenses=p.expenses.map(e=>({...e,id:e.id||uid('ex'),cat:e.cat||'Other',amount:Number(e.amount)||0,date:e.date||'',vendor:e.vendor||'',notes:e.notes||''}));
   });
   return data;
@@ -132,6 +183,74 @@ function initials(name){return name.split(/\s|&/).filter(Boolean).slice(0,2).map
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200); }
 function uid(prefix='id'){ return prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7); }
 function todayISO(){ const d=new Date(); const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+
+// Construction-photo optimization policy: keep enough detail for investor review while
+// aggressively reducing storage. Images are resized in the browser before cloud sync.
+const PHOTO_OPTIMIZATION={maxDimension:1600,targetBytes:350*1024,hardMaxBytes:650*1024,startQuality:.78,minQuality:.56,minDimension:1000};
+function humanBytes(bytes=0){
+  const n=Number(bytes)||0;
+  if(n<1024)return `${n} B`;
+  if(n<1024*1024)return `${(n/1024).toFixed(n<100*1024?1:0)} KB`;
+  return `${(n/1024/1024).toFixed(2)} MB`;
+}
+function blobToDataUrl(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error('Unable to read optimized image.'));r.readAsDataURL(blob);});}
+function loadImageForOptimization(file){
+  return new Promise((resolve,reject)=>{
+    const objectUrl=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{URL.revokeObjectURL(objectUrl);resolve(img)};
+    img.onerror=()=>{URL.revokeObjectURL(objectUrl);reject(new Error('This photo format could not be opened by the browser. Please use JPEG, PNG, or WebP.'));};
+    img.src=objectUrl;
+  });
+}
+async function canvasBlob(canvas,type,quality){
+  return new Promise(resolve=>canvas.toBlob(resolve,type,quality));
+}
+async function optimizeProjectPhoto(file,onProgress=()=>{}){
+  if(!file||!file.size)throw new Error('Choose a photo to upload.');
+  if(!String(file.type||'').startsWith('image/'))throw new Error('Please select an image file.');
+  onProgress('Preparing photo…');
+  const img=await loadImageForOptimization(file);
+  const naturalW=img.naturalWidth||img.width,naturalH=img.naturalHeight||img.height;
+  if(!naturalW||!naturalH)throw new Error('The selected photo has invalid dimensions.');
+  let scale=Math.min(1,PHOTO_OPTIMIZATION.maxDimension/Math.max(naturalW,naturalH));
+  let width=Math.max(1,Math.round(naturalW*scale)),height=Math.max(1,Math.round(naturalH*scale));
+  let best=null;
+  const tryEncode=async(w,h,q)=>{
+    const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    const ctx=canvas.getContext('2d',{alpha:false});
+    // Construction photos do not need transparency. A white base also prevents dark
+    // backgrounds if a PNG with transparency is uploaded.
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);
+    let blob=await canvasBlob(canvas,'image/webp',q);
+    let mime='image/webp';
+    // Very old browsers may not encode WebP; JPEG is the compatibility fallback.
+    if(!blob){blob=await canvasBlob(canvas,'image/jpeg',q);mime='image/jpeg';}
+    return {blob,mime,width:w,height:h,quality:q};
+  };
+  // First preserve 1600px detail and lower quality only to our visual-quality floor.
+  for(let q=PHOTO_OPTIMIZATION.startQuality;q>=PHOTO_OPTIMIZATION.minQuality-.001;q-=.055){
+    onProgress(`Optimizing photo… ${Math.round(q*100)}% quality`);
+    const encoded=await tryEncode(width,height,Math.max(PHOTO_OPTIMIZATION.minQuality,q));
+    if(!best||encoded.blob.size<best.blob.size)best=encoded;
+    if(encoded.blob.size<=PHOTO_OPTIMIZATION.targetBytes){best=encoded;break;}
+  }
+  // If the image is still large, keep the quality floor and reduce dimensions gradually.
+  while(best.blob.size>PHOTO_OPTIMIZATION.targetBytes && Math.max(width,height)>PHOTO_OPTIMIZATION.minDimension){
+    scale=.88;width=Math.max(1,Math.round(width*scale));height=Math.max(1,Math.round(height*scale));
+    onProgress(`Reducing dimensions… ${width}×${height}`);
+    const encoded=await tryEncode(width,height,PHOTO_OPTIMIZATION.minQuality);
+    if(encoded.blob.size<best.blob.size)best=encoded;
+  }
+  if(best.blob.size>PHOTO_OPTIMIZATION.hardMaxBytes){
+    // One final size-conscious pass. We do not lower the visual quality below the policy floor.
+    const factor=Math.sqrt(PHOTO_OPTIMIZATION.hardMaxBytes/best.blob.size)*.96;
+    width=Math.max(800,Math.round(best.width*factor));height=Math.max(600,Math.round(best.height*factor));
+    const encoded=await tryEncode(width,height,PHOTO_OPTIMIZATION.minQuality);
+    if(encoded.blob.size<best.blob.size)best=encoded;
+  }
+  const dataUrl=await blobToDataUrl(best.blob);
+  return {url:dataUrl,mime:best.mime,bytes:best.blob.size,originalBytes:file.size,width:best.width,height:best.height,quality:best.quality,originalName:file.name||'photo'};
+}
 function taskStatus(t){
   if(Number(t.progress)>=100 || t.status==='done') return 'done';
   if(Number(t.progress)>0) return 'current';
@@ -266,7 +385,7 @@ function overviewTemplate(p){
 }
 
 function phaseRow(t,i){
-  return `<div class="phase-row"><div class="phase-num">${escapeHtml(t.code||String(i+1).padStart(2,'0'))}</div><div class="phase-title"><strong>${escapeHtml(t.name)}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)}</span></div><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><div class="phase-status ${taskStatusClass(t)}">${taskStatusLabel(t)}</div></div>`;
+  return `<div class="phase-row"><div class="phase-num">${escapeHtml(t.code||String(i+1).padStart(2,'0'))}</div><div class="phase-title"><strong>${escapeHtml(t.name)}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)}</span><em class="phase-category-chip">${escapeHtml(taskCategory(t))}</em></div><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><div class="phase-status ${taskStatusClass(t)}">${taskStatusLabel(t)}</div></div>`;
 }
 
 function scheduleTemplate(p){
@@ -286,17 +405,26 @@ function ganttTemplate(p){
   const months=Array.from({length:monthCount},(_,i)=>addMonth(first,i));
   const template=`260px repeat(${monthCount},minmax(78px,1fr))`;
   const minWidth=Math.max(960,260+monthCount*82);
-  return `<div class="timeline"><div class="gantt" style="min-width:${minWidth}px"><div class="gantt-head" style="grid-template-columns:${template}"><div>Phase / trade</div>${months.map(m=>`<div>${m.toLocaleDateString('en-US',{month:'short',year:'2-digit'})}</div>`).join('')}</div>${p.tasks.map((t,i)=>{
-    if(!t.start||!t.end) return '';
-    const start=Math.max(0,Math.min(monthCount-1,monthDiff(first,monthStartFromISO(t.start))));
-    const end=Math.max(start,Math.min(monthCount-1,monthDiff(first,monthStartFromISO(t.end))));
-    const st=taskStatus(t);
-    return `<div class="gantt-row" style="grid-template-columns:${template};--months:${monthCount}"><div class="label"><strong>${escapeHtml(t.code||String(i+1))} · ${escapeHtml(t.name)}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)} · ${taskStatusLabel(t)}</span></div><div class="gantt-grid">${Array(monthCount).fill('<i></i>').join('')}</div><div class="bar ${st}" style="grid-column:${start+2}/${end+3};grid-row:1" title="${attr(t.name)}: ${fmtDate(t.start)} – ${fmtDate(t.end)}"></div></div>`;
-  }).join('')}</div></div>`;
+  const groups=groupedTasks(dated);
+  let rowIndex=0;
+  const rows=groups.map(group=>{
+    const groupRows=group.items.map(t=>{
+      const i=rowIndex++;
+      const start=Math.max(0,Math.min(monthCount-1,monthDiff(first,monthStartFromISO(t.start))));
+      const end=Math.max(start,Math.min(monthCount-1,monthDiff(first,monthStartFromISO(t.end))));
+      const st=taskStatus(t);
+      return `<div class="gantt-row" style="grid-template-columns:${template};--months:${monthCount}"><div class="label"><strong>${escapeHtml(t.code||String(i+1))} · ${escapeHtml(t.name)}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)} · ${taskStatusLabel(t)}</span></div><div class="gantt-grid">${Array(monthCount).fill('<i></i>').join('')}</div><div class="bar ${st}" style="grid-column:${start+2}/${end+3};grid-row:1" title="${attr(t.name)}: ${fmtDate(t.start)} – ${fmtDate(t.end)}"></div></div>`;
+    }).join('');
+    return `<div class="gantt-category-row" style="grid-template-columns:${template}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} phase${group.items.length===1?'':'s'}</span></div><div class="gantt-category-line"></div></div>${groupRows}`;
+  }).join('');
+  return `<div class="schedule-category-summary"><strong>${groups.length} construction categories</strong><span>Phases are automatically grouped by their broader construction scope. Admins can change the category on any individual phase.</span></div><div class="timeline"><div class="gantt" style="min-width:${minWidth}px"><div class="gantt-head" style="grid-template-columns:${template}"><div>Phase / trade</div>${months.map(m=>`<div>${m.toLocaleDateString('en-US',{month:'short',year:'2-digit'})}</div>`).join('')}</div>${rows}</div></div>`;
 }
 function listScheduleTemplate(p){
   const admin=currentUser().role==='admin';
-  return `<div class="table-wrap"><table class="table schedule-table"><thead><tr><th>Code</th><th>Phase</th><th>Start</th><th>Finish</th><th>Days</th><th>Progress</th><th>Status</th>${admin?'<th>Actions</th>':''}</tr></thead><tbody>${p.tasks.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${Number(t.duration)||daysBetweenInclusive(t.start,t.end)}</td><td style="min-width:150px"><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><span class="table-progress-label">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td>${admin?`<td><div class="action-group"><button class="icon-action" title="Edit phase" data-edit-task="${t.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')}</tbody></table></div>`;
+  const groups=groupedTasks(p.tasks);
+  const colspan=admin?8:7;
+  const body=groups.map(group=>`<tr class="schedule-category-row"><td colspan="${colspan}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} phase${group.items.length===1?'':'s'}</span></div></td></tr>${group.items.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong><span class="category-inline">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${Number(t.duration)||daysBetweenInclusive(t.start,t.end)}</td><td style="min-width:150px"><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><span class="table-progress-label">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td>${admin?`<td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')}`).join('');
+  return `<div class="schedule-category-summary"><strong>${groups.length} construction categories</strong><span>Phases are automatically grouped into the broader category that best matches the work.</span></div><div class="table-wrap"><table class="table schedule-table"><thead><tr><th>Code</th><th>Phase</th><th>Start</th><th>Finish</th><th>Days</th><th>Progress</th><th>Status</th>${admin?'<th>Actions</th>':''}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
 function photosTemplate(p){
@@ -307,11 +435,17 @@ function photoCard(ph,admin=false){
   return `<div class="photo"><img src="${ph.url}" alt="${escapeHtml(ph.title)}"><div class="photo-overlay"><strong>${escapeHtml(ph.title)}</strong><span>${escapeHtml(ph.phase||'Project update')} · ${fmtDate(ph.date)}</span></div>${admin?`<div class="photo-admin-actions"><button class="icon-action light" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action light danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div>`:''}</div>`;
 }
 
+function aggregateExpenseCategories(expenses=[]){
+  const map=new Map();
+  expenses.forEach(e=>{ const cat=String(e.cat||'Other').trim()||'Other'; map.set(cat,(map.get(cat)||0)+(Number(e.amount)||0)); });
+  return [...map.entries()].map(([cat,amount])=>({cat,amount})).sort((a,b)=>b.amount-a.amount);
+}
 function financialTemplate(p){
   const admin=currentUser().role==='admin';
   const pct=p.budget?Math.min(100,Math.round((p.invested/p.budget)*100)):0;
-  const max=Math.max(...p.expenses.map(e=>Number(e.amount)||0),1);
-  return `<div class="page-head"><div><h1>Investment & budget</h1><p>Investor-friendly visibility into budget utilization and project cost categories.</p></div>${admin?`<button class="btn btn-primary" id="financialAddExpenseBtn">${svgIcon('plus')} Add expense</button>`:''}</div><div class="grid grid-3"><div class="card metric"><span class="label">Approved project budget</span><div class="value">${money(p.budget)}</div><div class="muted" style="font-size:12px">Current authorized budget</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${pct}% utilized</div></div><div class="card metric"><span class="label">Remaining capital</span><div class="value">${money(Math.max(0,p.budget-p.invested))}</div><div class="muted" style="font-size:12px">Based on current budget</div></div></div><div class="card" style="margin-top:18px"><div class="card-head"><h3>Capital utilization</h3><span class="muted">Updated ${fmtDate(p.lastUpdate)}</span></div><div class="finance-wrap"><div><div class="donut" style="--pct:${pct}%"><div class="center"><strong>${pct}%</strong><span>budget utilized</span></div></div><div class="progress gold"><span style="width:${pct}%"></span></div></div><div><h3 style="margin:5px 0 18px;font-size:15px">Spend by category</h3><div class="spend-bars">${p.expenses.map(e=>`<div class="spend-item"><span>${escapeHtml(e.cat)}</span><div class="spend-track"><span style="width:${Math.round((Number(e.amount)||0)/max*100)}%"></span></div><b>${money(e.amount)}</b></div>`).join('')||'<div class="muted">No expenses entered yet.</div>'}</div></div></div></div>${admin?`<div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Expense ledger</h3><span class="muted">Edit or remove individual transactions</span></div><button class="btn btn-soft" id="financialAddExpenseBtn2">${svgIcon('plus')} Add expense</button></div>${expenseTableTemplate(p,true)}</div>`:''}<div class="card pad" style="margin-top:18px"><strong style="font-size:13px">Investor note</strong><p class="muted" style="font-size:12px;line-height:1.7;margin-bottom:0">This dashboard is designed for transparency and project tracking. Production deployment can also include invoice documents, draw requests, payment history, change orders, and lender-specific reporting.</p></div>`;
+  const categorySpend=aggregateExpenseCategories(p.expenses);
+  const max=Math.max(...categorySpend.map(e=>Number(e.amount)||0),1);
+  return `<div class="page-head"><div><h1>Investment & budget</h1><p>Investor-friendly visibility into budget utilization and project cost categories.</p></div>${admin?`<button class="btn btn-primary" id="financialAddExpenseBtn">${svgIcon('plus')} Add expense</button>`:''}</div><div class="grid grid-3"><div class="card metric"><span class="label">Approved project budget</span><div class="value">${money(p.budget)}</div><div class="muted" style="font-size:12px">Current authorized budget${admin?' · approved expenses update this automatically':''}</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${pct}% utilized</div></div><div class="card metric"><span class="label">Remaining capital</span><div class="value">${money(Math.max(0,p.budget-p.invested))}</div><div class="muted" style="font-size:12px">Based on current budget</div></div></div><div class="card" style="margin-top:18px"><div class="card-head"><h3>Capital utilization</h3><span class="muted">Updated ${fmtDate(p.lastUpdate)}</span></div><div class="finance-wrap"><div><div class="donut" style="--pct:${pct}%"><div class="center"><strong>${pct}%</strong><span>budget utilized</span></div></div><div class="progress gold"><span style="width:${pct}%"></span></div></div><div><h3 style="margin:5px 0 18px;font-size:15px">Spend by category</h3><div class="spend-bars">${categorySpend.map(e=>`<div class="spend-item"><span>${escapeHtml(e.cat)}</span><div class="spend-track"><span style="width:${Math.round((Number(e.amount)||0)/max*100)}%"></span></div><b>${money(e.amount)}</b></div>`).join('')||'<div class="muted">No expenses entered yet.</div>'}</div></div></div></div>${admin?`<div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Expense ledger</h3><span class="muted">Edit or remove individual transactions</span></div><button class="btn btn-soft" id="financialAddExpenseBtn2">${svgIcon('plus')} Add expense</button></div>${expenseTableTemplate(p,true)}</div>`:''}<div class="card pad" style="margin-top:18px"><strong style="font-size:13px">Investor note</strong><p class="muted" style="font-size:12px;line-height:1.7;margin-bottom:0">This dashboard is designed for transparency and project tracking. Production deployment can also include invoice documents, draw requests, payment history, change orders, and lender-specific reporting.</p></div>`;
 }
 
 function expenseTableTemplate(p,withActions=false){
@@ -337,11 +471,11 @@ function adminEditorTemplate(p){
     <div class="admin-action-row"><button class="btn btn-outline" id="addTaskBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="adminAddPhotoBtn">${svgIcon('plus')} Add photo</button><button class="btn btn-outline" id="addExpenseBtn">${svgIcon('plus')} Add expense</button></div>
   </div>
 
-  <div class="admin-subsection"><div class="card-head"><div><h3>Project phases</h3><span class="muted">${p.tasks.length} schedule items · click Edit to change dates, progress, code, or name</span></div><button class="btn btn-soft" id="addTaskBtn2">${svgIcon('plus')} Add phase</button></div>
-  <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Dates</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead><tbody>${p.tasks.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong></td><td>${fmtDate(t.start)} → ${fmtDate(t.end)}</td><td><span class="mini-progress">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td><td><div class="action-group"><button class="icon-action" title="Edit phase" data-edit-task="${t.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="muted">No construction phases yet.</td></tr>'}</tbody></table></div></div>
+  <div class="admin-subsection"><div class="card-head"><div><h3>Project phases</h3><span class="muted">${p.tasks.length} schedule items · each phase is assigned to a broader construction category</span></div><button class="btn btn-soft" id="addTaskBtn2">${svgIcon('plus')} Add phase</button></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Dates</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead><tbody>${groupedTasks(p.tasks).flatMap(g=>g.items).map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong></td><td><span class="category-admin-chip">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)} → ${fmtDate(t.end)}</td><td><span class="mini-progress">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td><td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit construction phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit phase</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="7" class="muted">No construction phases yet.</td></tr>'}</tbody></table></div></div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project photos</h3><span class="muted">${p.photos.length} uploaded photos · edit title, date, phase, or replace the image</span></div><button class="btn btn-soft" id="adminAddPhotoBtn2">${svgIcon('plus')} Add photo</button></div>
-  <div class="table-wrap"><table class="table"><thead><tr><th>Photo</th><th>Title</th><th>Phase</th><th>Date</th><th>Actions</th></tr></thead><tbody>${p.photos.slice().reverse().map(ph=>`<tr><td><img class="table-thumb" src="${ph.url}" alt=""></td><td><strong>${escapeHtml(ph.title)}</strong></td><td>${escapeHtml(ph.phase||'—')}</td><td>${fmtDate(ph.date)}</td><td><div class="action-group"><button class="icon-action" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="5" class="muted">No photos uploaded yet.</td></tr>'}</tbody></table></div></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Photo</th><th>Title</th><th>Phase</th><th>Date</th><th>Storage</th><th>Actions</th></tr></thead><tbody>${p.photos.slice().reverse().map(ph=>`<tr><td><img class="table-thumb" src="${ph.url}" alt=""></td><td><strong>${escapeHtml(ph.title)}</strong></td><td>${escapeHtml(ph.phase||'—')}</td><td>${fmtDate(ph.date)}</td><td><span class="storage-size">${ph.optimizedBytes?humanBytes(ph.optimizedBytes):'Legacy image'}</span></td><td><div class="action-group"><button class="icon-action" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="muted">No photos uploaded yet.</td></tr>'}</tbody></table></div></div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project expenses</h3><span class="muted">${p.expenses.length} entries · invested total ${money(p.invested)}</span></div><button class="btn btn-soft" id="addExpenseBtn2">${svgIcon('plus')} Add expense</button></div>${expenseTableTemplate(p,true)}</div>`;
 }
@@ -385,8 +519,10 @@ function bindAdmin(){
   document.querySelectorAll('[data-delete-user]').forEach(b=>b.onclick=()=>deleteClient(b.dataset.deleteUser));
 }
 
-function recalcProjectInvestment(p){
-  p.invested=p.expenses.reduce((a,x)=>a+(Number(x.amount)||0),0);
+function applyExpenseFinancialDelta(p,delta){
+  const change=Number(delta)||0;
+  p.invested=Math.max(0,(Number(p.invested)||0)+change);
+  p.budget=Math.max(0,(Number(p.budget)||0)+change);
   p.lastUpdate=todayISO();
 }
 function deleteTask(id){
@@ -405,7 +541,7 @@ function deleteExpense(id){
   const p=currentProject(); if(!p)return;
   const ex=p.expenses.find(x=>x.id===id); if(!ex)return;
   if(!confirm(`Delete expense "${ex.cat}" for ${money(ex.amount)}?`))return;
-  p.expenses=p.expenses.filter(x=>x.id!==id); recalcProjectInvestment(p); saveState(); renderView(); toast('Expense deleted');
+  p.expenses=p.expenses.filter(x=>x.id!==id); applyExpenseFinancialDelta(p,-(Number(ex.amount)||0)); saveState(); renderView(); toast('Expense deleted; budget and invested totals adjusted');
 }
 function deleteClient(id){
   const u=state.users.find(x=>x.id===id); if(!u)return;
@@ -564,7 +700,7 @@ async function parseScheduleWorkbook(file){
     const complete=header.complete>=0?parseComplete(row[header.complete]):false;
     const finalDuration=duration||daysBetweenInclusive(start,end);
     tasks.push({
-      id:uid('xls'),code:phase.code,name:phase.name,start,end,duration:finalDuration,
+      id:uid('xls'),code:phase.code,name:phase.name,category:inferPhaseCategory(phase.name,phase.code),start,end,duration:finalDuration,
       progress:complete?100:0,status:statusForImportedTask(complete,start,end),sourceRow:r+1
     });
   }
@@ -599,14 +735,14 @@ function importPreviewHtml(parsed){
   const sample=parsed.tasks.slice(0,8);
   return `<div class="import-preview-stats"><div><strong>${st.rows}</strong><span>phases found</span></div><div><strong>${st.complete}</strong><span>marked complete</span></div><div><strong>${st.completion}%</strong><span>schedule completion</span></div><div><strong>${fmtDate(st.start)}</strong><span>first phase</span></div><div><strong>${fmtDate(st.end)}</strong><span>last phase</span></div></div>
   ${parsed.skipped?`<div class="import-warning">${parsed.skipped} row${parsed.skipped===1?' was':'s were'} skipped because a valid Start and End date could not be determined.</div>`:''}
-  <div class="table-wrap import-preview-table"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Start</th><th>End</th><th>Days</th><th>Status</th></tr></thead><tbody>${sample.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${t.duration}</td><td>${taskStatusLabel(t)}</td></tr>`).join('')}</tbody></table></div>${parsed.tasks.length>sample.length?`<div class="muted import-more">Previewing 8 of ${parsed.tasks.length} phases.</div>`:''}`;
+  <div class="table-wrap import-preview-table"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Start</th><th>End</th><th>Days</th><th>Status</th></tr></thead><tbody>${sample.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong></td><td><span class="category-inline">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${t.duration}</td><td>${taskStatusLabel(t)}</td></tr>`).join('')}</tbody></table></div>${parsed.tasks.length>sample.length?`<div class="muted import-more">Previewing 8 of ${parsed.tasks.length} phases.</div>`:''}`;
 }
 function openScheduleImportModal(){
   const p=currentProject(); if(!p)return;
   modal(`Import Excel schedule · ${escapeHtml(p.name)}`,`<form id="scheduleImportForm"><div class="import-intro"><div class="schedule-import-icon large">${svgIcon('upload')}</div><div><strong>Update this project's construction phases from Excel</strong><p>Select the spreadsheet belonging to <b>${escapeHtml(p.name)}</b>. The importer finds the schedule headers automatically, including the format in your provided template.</p></div></div>
   <div class="field"><label>Excel schedule file</label><label class="file-drop" for="scheduleFile"><span>${svgIcon('file')}</span><div><strong>Choose .xlsx or .xls file</strong><small>Expected columns: ID #, Title, Complete, Duration, Start, End</small></div><input id="scheduleFile" type="file" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required></label></div>
   <div class="form-grid import-options"><div class="field"><label>Import behavior</label><select class="select" id="scheduleImportMode"><option value="replace">Replace schedule with spreadsheet</option><option value="merge">Merge / update matching phase codes</option></select></div><div class="field checkbox-field"><label><input type="checkbox" id="updateProjectFacts" checked> Update project start, target completion, and completion % from spreadsheet</label></div></div>
-  <div class="import-note"><strong>How it works</strong><span>The Title prefix such as <b>300- Driveway - Pouring</b> becomes phase code <b>300</b>. Complete = TRUE becomes 100% complete. Incomplete tasks are classified as upcoming, in progress, or past due from their dates.</span></div>
+  <div class="import-note"><strong>How it works</strong><span>The Title prefix such as <b>300- Driveway - Pouring</b> becomes phase code <b>300</b>. Each row is also auto-assigned to the broader construction category that best matches the work. Complete = TRUE becomes 100% complete. Incomplete tasks are classified as upcoming, in progress, or past due from their dates.</span></div>
   <div id="scheduleImportStatus" class="import-status muted">Choose a spreadsheet to preview the changes before importing.</div>
   <div id="scheduleImportPreview"></div>
   <div class="form-actions"><button type="button" class="btn btn-primary" id="applyScheduleImport" disabled>${svgIcon('upload')} Import schedule</button></div></form>`,(w,close)=>{
@@ -652,20 +788,25 @@ function undoLastScheduleImport(){
 function openTaskModal(task=null){
   const p=currentProject(); if(!p)return;
   const editing=!!task;
-  modal(editing?'Edit construction phase':'Add construction phase',`<form id="taskForm"><div class="form-grid">
+  modal(editing?'Edit construction phase':'Add construction phase',`<form id="taskForm"><div class="phase-edit-note">${editing?'Changes made here update this individual phase only and sync to the assigned client.':'Add a single phase manually. Excel imports can still replace or merge the full schedule later.'}</div><div class="form-grid">
     <div class="field"><label>Phase code</label><input class="input" name="code" placeholder="e.g. 340" value="${attr(task?.code||'')}" required></div>
     <div class="field"><label>Phase / trade name</label><input class="input" name="name" value="${attr(task?.name||'')}" required></div>
+    <div class="field full"><label>Broader construction category</label><select class="select" name="category">${phaseCategoryOptions(task?.category||'')}</select><small class="muted">Leave on Auto-detect to categorize from the phase name. You can override it for any individual phase.</small></div>
     <div class="field"><label>Start date</label><input class="input" type="date" name="start" value="${task?.start||''}" required></div>
     <div class="field"><label>Finish date</label><input class="input" type="date" name="end" value="${task?.end||''}" required></div>
     <div class="field"><label>Progress %</label><input class="input" type="number" min="0" max="100" name="progress" value="${Number(task?.progress)||0}" required></div>
     <div class="field"><label>Duration (days)</label><input class="input" type="number" min="1" name="duration" value="${task?Number(task.duration)||daysBetweenInclusive(task.start,task.end):''}" placeholder="Calculated from dates"></div>
-  </div><div class="form-actions"><button class="btn btn-primary">${editing?'Save phase':'Add phase'}</button></div></form>`,(w,close)=>{
+    <div class="field"><label>Responsible trade / contractor</label><input class="input" name="trade" value="${attr(task?.trade||'')}" placeholder="Optional"></div>
+    <div class="field full"><label>Phase notes</label><textarea class="textarea" name="notes" placeholder="Optional investor-facing update or admin note">${escapeHtml(task?.notes||'')}</textarea></div>
+  </div><div class="form-actions"><button class="btn btn-primary">${editing?'Save phase changes':'Add phase'}</button></div></form>`,(w,close)=>{
     w.querySelector('#taskForm').onsubmit=e=>{
       e.preventDefault(); const f=new FormData(e.target);
       const prog=Math.max(0,Math.min(100,+f.get('progress')||0)),start=f.get('start'),end=f.get('end');
       if(start && end && end<start){toast('Finish date cannot be before the start date');return}
       const duration=Math.max(1,+f.get('duration')||daysBetweenInclusive(start,end));
-      const values={code:String(f.get('code')||'').trim(),name:String(f.get('name')||'').trim(),start,end,duration,progress:prog,status:prog===100?'done':prog>0?'current':statusForImportedTask(false,start,end)};
+      const code=String(f.get('code')||'').trim(),name=String(f.get('name')||'').trim();
+      const category=String(f.get('category')||'').trim() || inferPhaseCategory(name,code);
+      const values={code,name,category,start,end,duration,progress:prog,trade:String(f.get('trade')||'').trim(),notes:String(f.get('notes')||'').trim(),status:prog===100?'done':prog>0?'current':statusForImportedTask(false,start,end)};
       if(editing)Object.assign(task,values); else p.tasks.push({id:uid('t'),...values});
       p.tasks.sort((a,b)=>(a.start||'9999').localeCompare(b.start||'9999') || String(a.code||'').localeCompare(String(b.code||'')));
       p.completion=scheduleCompletion(p.tasks); p.lastUpdate=todayISO(); saveState(); close(); renderView(); toast(editing?'Phase updated':'Phase added');
@@ -677,25 +818,53 @@ function openPhotoModal(photo=null){
   const p=currentProject(); if(!p)return;
   const editing=!!photo;
   const phaseOptions=p.tasks.map(t=>t.name).filter(Boolean);
+  const existingSize=photo?.optimizedBytes||photo?.bytes||0;
   modal(editing?'Edit project photo':'Add project photo',`<form id="photoForm"><div class="form-grid">
     ${editing&&photo.url?`<div class="field full"><label>Current image</label><img class="modal-photo-preview" src="${photo.url}" alt=""></div>`:''}
     <div class="field full"><label>Photo title</label><input class="input" name="title" value="${attr(photo?.title||'')}" required></div>
     <div class="field"><label>Date</label><input class="input" type="date" name="date" value="${photo?.date||todayISO()}" required></div>
     <div class="field"><label>Project phase</label><input class="input" name="phase" list="phaseNames" value="${attr(photo?.phase||'')}" placeholder="Framing, HVAC, Exterior…"><datalist id="phaseNames">${phaseOptions.map(x=>`<option value="${attr(x)}"></option>`).join('')}</datalist></div>
-    <div class="field full"><label>${editing?'Replace image (optional)':'Image file'}</label><input class="input" type="file" name="file" accept="image/*" ${editing?'':'required'}><small class="muted">${editing?'Leave empty to keep the current image. ':''}Photos are synchronized to the shared portal so assigned clients can view them from other devices. For very large photo libraries, private object storage is recommended.</small></div>
-  </div><div class="form-actions"><button class="btn btn-primary">${editing?'Save photo':'Upload photo'}</button></div></form>`,(w,close)=>{
-    w.querySelector('#photoForm').onsubmit=e=>{
-      e.preventDefault(); const f=new FormData(e.target),file=f.get('file');
-      const savePhoto=(url)=>{
-        const values={title:String(f.get('title')||'').trim(),date:String(f.get('date')||''),phase:String(f.get('phase')||'').trim(),url:url||photo?.url||''};
+    <div class="field full"><label>${editing?'Replace image (optional)':'Image file'}</label><input class="input" type="file" name="file" accept="image/jpeg,image/png,image/webp,image/*" ${editing?'':'required'}>
+      <small class="muted">${editing?'Leave empty to keep the current image. ':''}Kairos automatically resizes and compresses each upload to WebP when supported. The target is about 350 KB per photo, with a 1,600 px maximum edge and a quality floor designed to keep construction details clear.${existingSize?` Current optimized size: <b>${humanBytes(existingSize)}</b>.`:''}</small>
+    </div>
+    <div class="field full"><div id="photoOptimizeStatus" class="photo-optimize-status"><span class="photo-opt-dot"></span><span>Select a photo to see its storage optimization.</span></div></div>
+  </div><div class="form-actions"><button class="btn btn-primary" id="photoSaveBtn">${editing?'Save photo':'Optimize & upload photo'}</button></div></form>`,(w,close)=>{
+    const form=w.querySelector('#photoForm'),fileInput=form.querySelector('[name="file"]'),status=w.querySelector('#photoOptimizeStatus'),saveBtn=w.querySelector('#photoSaveBtn');
+    let optimized=null,optimizedFileKey='';
+    const setStatus=(message,kind='')=>{status.className=`photo-optimize-status ${kind}`;status.innerHTML=`<span class="photo-opt-dot"></span><span>${message}</span>`;};
+    fileInput.onchange=async()=>{
+      const file=fileInput.files?.[0]||null;optimized=null;optimizedFileKey='';
+      if(!file){setStatus(editing?'No replacement selected; the existing image will be kept.':'Select a photo to see its storage optimization.');return;}
+      setStatus(`Original: ${humanBytes(file.size)}. Ready to optimize when you save.`,'ready');
+    };
+    form.onsubmit=async e=>{
+      e.preventDefault();
+      const f=new FormData(form),file=f.get('file');
+      saveBtn.disabled=true;
+      try{
+        if(file&&file.size){
+          const key=`${file.name}|${file.size}|${file.lastModified}`;
+          if(!optimized||optimizedFileKey!==key){
+            optimized=await optimizeProjectPhoto(file,msg=>setStatus(escapeHtml(msg),'working'));optimizedFileKey=key;
+          }
+          const reduction=Math.max(0,Math.round((1-optimized.bytes/Math.max(1,optimized.originalBytes))*100));
+          setStatus(`Optimized ${humanBytes(optimized.originalBytes)} → <b>${humanBytes(optimized.bytes)}</b> (${reduction}% smaller) · ${optimized.width}×${optimized.height}`,'success');
+        }
+        const values={
+          title:String(f.get('title')||'').trim(),date:String(f.get('date')||''),phase:String(f.get('phase')||'').trim(),
+          url:optimized?.url||photo?.url||'',mime:optimized?.mime||photo?.mime||'',optimizedBytes:optimized?.bytes||photo?.optimizedBytes||photo?.bytes||0,
+          originalBytes:optimized?.originalBytes||photo?.originalBytes||0,width:optimized?.width||photo?.width||0,height:optimized?.height||photo?.height||0,
+          originalName:optimized?.originalName||photo?.originalName||''
+        };
+        if(!values.url)throw new Error('Choose a photo to upload.');
         if(editing)Object.assign(photo,values); else p.photos.push({id:uid('ph'),...values});
         p.lastUpdate=todayISO();
-        try{saveState();}catch(err){toast('Image is too large for browser demo storage');return}
-        close(); renderView(); toast(editing?'Photo updated':'Photo uploaded');
-      };
-      if(file && file.size){
-        const reader=new FileReader(); reader.onload=()=>savePhoto(reader.result); reader.readAsDataURL(file);
-      } else savePhoto(photo?.url||'');
+        await saveState();
+        close(); renderView(); toast(editing?'Photo updated and optimized':'Photo optimized and uploaded');
+      }catch(err){
+        setStatus(escapeHtml(err?.message||'Unable to optimize this photo.'),'error');
+        toast(err?.message||'Unable to upload photo');
+      }finally{saveBtn.disabled=false;}
     };
   });
 }
@@ -703,7 +872,8 @@ function openPhotoModal(photo=null){
 function openExpenseModal(expense=null){
   const p=currentProject(); if(!p)return;
   const editing=!!expense;
-  modal(editing?'Edit project expense':'Add project expense',`<form id="expenseForm"><div class="form-grid">
+  const oldAmount=editing?(Number(expense.amount)||0):0;
+  modal(editing?'Edit project expense':'Add project expense',`<form id="expenseForm"><div class="expense-budget-note"><strong>Automatic financial update</strong><span>${editing?'Changing this amount adjusts':'Adding this expense increases'} both <b>Approved Project Budget</b> and <b>Invested to Date</b>${editing?' by the amount difference':''}. Deleting the expense reverses the same amount.</span></div><div class="form-grid">
     <div class="field"><label>Category</label><input class="input" name="cat" value="${attr(expense?.cat||'')}" placeholder="Windows / Exterior" required></div>
     <div class="field"><label>Amount</label><input class="input" type="number" name="amount" min="0" step="0.01" value="${expense?.amount??''}" required></div>
     <div class="field"><label>Date</label><input class="input" type="date" name="date" value="${expense?.date||todayISO()}"></div>
@@ -714,7 +884,8 @@ function openExpenseModal(expense=null){
       e.preventDefault(); const f=new FormData(e.target);
       const values={cat:String(f.get('cat')||'').trim(),amount:+f.get('amount')||0,date:String(f.get('date')||''),vendor:String(f.get('vendor')||'').trim(),notes:String(f.get('notes')||'').trim()};
       if(editing)Object.assign(expense,values); else p.expenses.push({id:uid('ex'),...values});
-      recalcProjectInvestment(p); saveState(); close(); renderView(); toast(editing?'Expense updated':'Expense added');
+      const delta=values.amount-oldAmount;
+      applyExpenseFinancialDelta(p,delta); saveState(); close(); renderView(); toast(editing?'Expense updated; budget and invested totals adjusted':'Expense added to approved budget and invested total');
     };
   });
 }

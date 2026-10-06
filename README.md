@@ -1,4 +1,4 @@
-# Kairos Legacy Homes — Investor Project Portal v1.3
+# Kairos Legacy Homes — Investor Project Portal v1.5
 
 This version fixes the previous browser-only login limitation. Client accounts and project data now use a shared server data layer. When `DATABASE_URL` is configured, the portal stores that shared data in PostgreSQL, so a client created on the Admin computer can sign in from a phone, tablet, or another computer.
 
@@ -6,7 +6,7 @@ Passwords are not stored in the browser after synchronization and are stored ser
 
 ## IMPORTANT: one-time migration for the account you already created
 
-Your older version saved users/projects only inside the browser where you created them. After deploying v1.3:
+Your older version saved users/projects only inside the browser where you created them. After deploying v1.5:
 
 1. Use the SAME desktop/browser where you originally created `pbraza@gmail...`.
 2. Open the newly deployed Render portal.
@@ -60,3 +60,40 @@ A Render Free Web Service has an ephemeral filesystem and can lose local files w
 - Expense add/edit/delete
 - Project/client account editing
 - Shared cross-device logins and project data
+
+
+## v1.5 — Construction phase categories + automatic expense totals
+
+### Automatic broader construction categories
+Every schedule phase is now assigned to a broader construction category such as **Pre-Construction, Design & Permitting**, **Foundation & Underground**, **Structure & Framing**, **MEP Rough-In & Utilities**, **Interior Finishes**, **Site Improvements & Landscaping**, and **Final Inspections & Turnover**.
+
+- Excel imports auto-categorize each phase from its phase code/title.
+- Existing projects are categorized automatically when loaded.
+- Gantt and List views group phases under category headers.
+- Admins can override the category when editing any individual phase.
+- The importer preview shows the detected category before the schedule is applied.
+
+### Expense behavior
+When an expense is added, its amount is automatically added to both **Approved Project Budget** and **Invested to Date**. Editing an expense adjusts both totals by the difference, and deleting an expense reverses that amount.
+
+The **Spend by category** visualization also aggregates multiple expense entries with the same category into one category total.
+
+## v1.4 — Individual phase editing + automatic photo optimization
+
+### Edit any construction phase
+Administrators can edit each construction phase independently from **Schedule → List** or **Admin Center → Project phases**. The editor supports phase code/name, start and finish dates, progress percentage, duration, responsible trade/contractor, and phase notes. Changes sync to shared storage and become visible to the assigned client.
+
+### Storage-optimized construction photos
+New photo uploads are optimized **in the browser before they are synchronized to Render/PostgreSQL**. This reduces network use and database/storage consumption without requiring the admin to resize photos manually.
+
+Default optimization policy:
+- Maximum long edge: **1,600 px**
+- Preferred output: **WebP** (JPEG fallback)
+- Target size: approximately **350 KB per photo**
+- Quality floor: **56%** before dimensions are reduced further
+- Soft maximum: approximately **650 KB** for unusually detailed images
+- The upload dialog shows the original size, optimized size, percentage saved, and final pixel dimensions.
+
+Older photos remain compatible. Replacing a legacy photo through Edit will automatically optimize the replacement.
+
+> For a very large production photo archive (thousands of images), object storage such as S3/R2/Supabase Storage is still preferable to storing image payloads inside the portal database. This version substantially reduces the footprint of the current shared-storage architecture.

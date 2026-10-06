@@ -1,8 +1,8 @@
 {
   "name": "kairos-legacy-homes-investor-portal",
-  "version": "1.3.0",
+  "version": "1.5.0",
   "private": true,
-  "description": "Kairos Legacy Homes investor construction portal with shared cross-device client logins, Excel schedules, and full admin editing - Render-ready",
+  "description": "Kairos Legacy Homes investor construction portal with shared cross-device logins, Excel schedules, categorized phases, admin editing, automatic photo optimization, and expense-driven budget updates - Render-ready",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
