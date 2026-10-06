@@ -1,7 +1,0 @@
-[
- {"name":"summary","url":"https://buildertrend.net/app/Owner/Summary","ready_selector":".ProjectFinancials"},
- {"name":"schedule","url":"https://buildertrend.net/app/owner/Schedules/5","ready_selector":"[data-testid=agGridScheduleList]"},
- {"name":"photos","url":"https://buildertrend.net/app/owner/Photos/AttachedFiles/-27000","ready_selector":".infinite-scroll-component"},
- {"name":"dailyLogs","url":"https://buildertrend.net/app/owner/DailyLogs","ready_selector":"#DailyLogsListSectionInner"},
- {"name":"invoices","url":"https://buildertrend.net/app/owner/OwnerInvoices","ready_selector":".k-grid[role=grid]"}
-]

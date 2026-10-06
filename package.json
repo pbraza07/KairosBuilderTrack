@@ -1,8 +1,8 @@
 {
   "name": "kairos-legacy-homes-investor-portal",
-  "version": "1.11.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Kairos Builder Portal with project-scoped Buildertrend adapters and imported data viewer",
+  "description": "Kairos Legacy Homes investor construction portal v2.0 with durable-storage protection, non-destructive server merges, explicit human-only deletion, shared cross-device logins, English/Brazilian Portuguese UI switching, Excel schedules, categorized phases, editable admin controls, optimized photo gallery/download, and client expense approval notifications/history - Render-ready",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

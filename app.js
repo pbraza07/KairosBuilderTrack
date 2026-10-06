@@ -703,6 +703,27 @@ const PHASE_CATEGORIES = [
   'Other / General'
 ];
 
+const CATEGORY_THEME = {
+  'Pre-Construction, Design & Permitting': {solid:'#5479a6', soft:'#e8f0fb', line:'#c9d9f0', accent:'#385b85'},
+  'Site Preparation & Temporary Services': {solid:'#8c6d3f', soft:'#f8f0e4', line:'#ead8bb', accent:'#6b522d'},
+  'Foundation & Underground': {solid:'#7a5c52', soft:'#f3ebea', line:'#dfceca', accent:'#5d453e'},
+  'Structure & Framing': {solid:'#a86a4e', soft:'#f8ece7', line:'#e9cfbf', accent:'#83513b'},
+  'Building Envelope & Exterior': {solid:'#4d8f84', soft:'#e8f6f3', line:'#c8e4de', accent:'#346b61'},
+  'MEP Rough-In & Utilities': {solid:'#6d74b7', soft:'#eef0fb', line:'#d5d9f2', accent:'#50569a'},
+  'Insulation & Drywall': {solid:'#9a78b2', soft:'#f4eef8', line:'#e1d3ec', accent:'#7a5d91'},
+  'Septic, Well & Water Systems': {solid:'#3d90b3', soft:'#e7f5fb', line:'#c5e4f0', accent:'#2b6f8b'},
+  'Interior Finishes': {solid:'#d09344', soft:'#fbf1e3', line:'#f1dcc0', accent:'#aa7330'},
+  'Site Improvements & Landscaping': {solid:'#5c9a57', soft:'#ecf7eb', line:'#d0e8cd', accent:'#43733f'},
+  'Testing, Startup & Punch': {solid:'#bf8b3f', soft:'#fbf5e8', line:'#ecdcb9', accent:'#987032'},
+  'Final Inspections & Turnover': {solid:'#53807a', soft:'#edf5f4', line:'#d3e3e0', accent:'#3c645f'},
+  'Other / General': {solid:'#7f8c87', soft:'#f0f3f2', line:'#d9e0dd', accent:'#626d69'}
+};
+function categoryTheme(category=''){ return CATEGORY_THEME[category] || CATEGORY_THEME['Other / General']; }
+function categoryThemeStyle(category=''){
+  const theme=categoryTheme(category);
+  return `--cat-solid:${theme.solid};--cat-soft:${theme.soft};--cat-line:${theme.line};--cat-accent:${theme.accent};`;
+}
+
 function phaseSearchText(name='',code=''){
   return `${code} ${name}`.toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
 }
@@ -1108,10 +1129,9 @@ function renderView(){ const host=document.getElementById('view'); const p=curre
   if(currentView==='schedule') host.innerHTML=scheduleTemplate(p);
   if(currentView==='photos') host.innerHTML=photosTemplate(p);
   if(currentView==='financials') host.innerHTML=financialTemplate(p);
-  if(currentView==='admin') host.innerHTML=adminTemplate()+buildertrendPanel();
+  if(currentView==='admin') host.innerHTML=adminTemplate();
   applyLanguage(host);
   bindView();
-  bindBuildertrend();
 }
 
 function overviewTemplate(p){
@@ -1136,6 +1156,29 @@ function scheduleTemplate(p){
 function monthStartFromISO(s){ const d=new Date(s+'T12:00:00'); return new Date(d.getFullYear(),d.getMonth(),1); }
 function monthDiff(a,b){ return (b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth()); }
 function addMonth(d,n){ return new Date(d.getFullYear(),d.getMonth()+n,1); }
+function dateFromISO(s){ return new Date(`${s}T12:00:00`); }
+function monthEndDate(d){ return new Date(d.getFullYear(),d.getMonth()+1,0,12,0,0,0); }
+function diffDays(a,b){ return Math.round((b-a)/86400000); }
+function ganttPlacement(startISO,endISO,rangeStart,rangeEnd){
+  const start=dateFromISO(startISO),end=dateFromISO(endISO);
+  const safeStart=start<rangeStart?rangeStart:start;
+  const safeEnd=end>rangeEnd?rangeEnd:end;
+  const totalDays=Math.max(1,diffDays(rangeStart,rangeEnd)+1);
+  const offsetDays=Math.max(0,diffDays(rangeStart,safeStart));
+  const activeDays=Math.max(1,diffDays(safeStart,safeEnd)+1);
+  return {
+    leftPct:(offsetDays/totalDays)*100,
+    widthPct:(activeDays/totalDays)*100,
+    startDay:start.getDate(),
+    endDay:end.getDate()
+  };
+}
+function dayRangeBadge(t){
+  const start=dateFromISO(t.start),end=dateFromISO(t.end);
+  if(start.getMonth()===end.getMonth() && start.getFullYear()===end.getFullYear()) return `${start.getDate()}–${end.getDate()}`;
+  const short=(d)=>d.toLocaleDateString(localeCode(),{month:'short',day:'numeric'});
+  return `${short(start)} → ${short(end)}`;
+}
 function ganttTemplate(p){
   const dated=p.tasks.filter(t=>t.start&&t.end);
   if(!dated.length) return '<div class="empty">No dated construction phases yet. Import a project schedule or add phases manually.</div>';
@@ -1143,21 +1186,26 @@ function ganttTemplate(p){
   let last=dated.reduce((a,t)=>monthStartFromISO(t.end)>a?monthStartFromISO(t.end):a,monthStartFromISO(dated[0].end));
   const monthCount=Math.min(36,Math.max(1,monthDiff(first,last)+1));
   const months=Array.from({length:monthCount},(_,i)=>addMonth(first,i));
-  const template=`260px repeat(${monthCount},minmax(78px,1fr))`;
-  const minWidth=Math.max(960,260+monthCount*82);
+  const template=`260px repeat(${monthCount},minmax(94px,1fr))`;
+  const minWidth=Math.max(1120,260+monthCount*96);
   const groups=groupedTasks(dated);
+  const rangeStart=new Date(first.getFullYear(),first.getMonth(),1,12,0,0,0);
+  const lastMonth=months[months.length-1];
+  const rangeEnd=monthEndDate(lastMonth);
   let rowIndex=0;
   const rows=groups.map(group=>{
+    const groupStyle=categoryThemeStyle(group.category);
     const groupRows=group.items.map(t=>{
       const i=rowIndex++;
-      const start=Math.max(0,Math.min(monthCount-1,monthDiff(first,monthStartFromISO(t.start))));
-      const end=Math.max(start,Math.min(monthCount-1,monthDiff(first,monthStartFromISO(t.end))));
       const st=taskStatus(t);
-      return `<div class="gantt-row" style="grid-template-columns:${template};--months:${monthCount}"><div class="label"><strong>${escapeHtml(t.code||String(i+1))} · ${escapeHtml(localizedPhaseName(t.name))}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)} · ${taskStatusLabel(t)}</span></div><div class="gantt-grid">${Array(monthCount).fill('<i></i>').join('')}</div><div class="bar ${st}" style="grid-column:${start+2}/${end+3};grid-row:1" title="${attr(localizedPhaseName(t.name))}: ${fmtDate(t.start)} – ${fmtDate(t.end)}"></div></div>`;
+      const placement=ganttPlacement(t.start,t.end,rangeStart,rangeEnd);
+      const theme=categoryTheme(taskCategory(t));
+      const barStyle=`left:${placement.leftPct}%;width:${placement.widthPct}%;--bar-color:${st==='overdue'?'#c95d5d':theme.solid};--bar-accent:${st==='overdue'?'#a44747':theme.accent};--bar-soft:${st==='overdue'?'#f7e4e4':theme.soft};`;
+      return `<div class="gantt-row" style="grid-template-columns:${template};--months:${monthCount}"><div class="label"><strong>${escapeHtml(t.code||String(i+1))} · ${escapeHtml(localizedPhaseName(t.name))}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)} · ${taskStatusLabel(t)}</span></div><div class="gantt-grid">${Array(monthCount).fill('<i></i>').join('')}</div><div class="gantt-bar-layer"><div class="bar ${st}" style="${barStyle}" title="${attr(localizedPhaseName(t.name))}: ${fmtDate(t.start)} – ${fmtDate(t.end)}"><span class="bar-days">${escapeHtml(dayRangeBadge(t))}</span></div></div></div>`;
     }).join('');
-    return `<div class="gantt-category-row" style="grid-template-columns:${template}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} ${currentLanguage==='pt'?(group.items.length===1?'fase':'fases'):(group.items.length===1?'phase':'phases')}</span></div><div class="gantt-category-line"></div></div>${groupRows}`;
+    return `<div class="gantt-category-row" style="grid-template-columns:${template};${groupStyle}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} ${currentLanguage==='pt'?(group.items.length===1?'fase':'fases'):(group.items.length===1?'phase':'phases')}</span></div><div class="gantt-category-line"></div></div>${groupRows}`;
   }).join('');
-  return `<div class="schedule-category-summary"><strong>${groups.length} construction categories</strong><span>Phases are automatically grouped by their broader construction scope. Admins can change the category on any individual phase.</span></div><div class="timeline"><div class="gantt" style="min-width:${minWidth}px"><div class="gantt-head" style="grid-template-columns:${template}"><div>Phase / trade</div>${months.map(m=>`<div>${m.toLocaleDateString(localeCode(),{month:'short',year:'2-digit'})}</div>`).join('')}</div>${rows}</div></div>`;
+  return `<div class="schedule-category-summary"><strong>${groups.length} construction categories</strong><span>Phases are automatically grouped by their broader construction scope. Admins can change the category on any individual phase.</span></div><div class="timeline"><div class="gantt" style="min-width:${minWidth}px"><div class="gantt-head" style="grid-template-columns:${template}"><div>Phase / trade</div>${months.map(m=>`<div>${m.toLocaleDateString(localeCode(),{month:'short',year:'2-digit'})}<small>1–${new Date(m.getFullYear(),m.getMonth()+1,0).getDate()}</small></div>`).join('')}</div>${rows}</div></div>`;
 }
 function listScheduleTemplate(p){
   const admin=currentUser().role==='admin';
@@ -1661,35 +1709,3 @@ function attr(s=''){ return escapeHtml(s); }
 setInterval(()=>refreshClientState(false),30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshClientState(true);});
 boot();
-
-function buildertrendPanel(){
- const pt=currentLanguage==='pt';
- return `<div class="card" style="margin-top:18px;padding:24px"><h3>Buildertrend</h3><p>${pt?'Captura somente leitura. Veja abaixo cronogramas, valores, faturas, diários e prévias de fotos importados.':'Read-only capture. View imported schedules, finances, invoices, logs and photo previews below.'}</p><button class="btn btn-primary" id="btRefresh">${pt?'Atualizar do Buildertrend':'Refresh from Buildertrend'}</button> <button class="btn btn-outline" id="btStatus">${pt?'Verificar status':'Check status'}</button> <button class="btn btn-outline" id="btDownload">${pt?'Baixar captura':'Download capture'}</button><button class="btn btn-outline" id="btInspect">${pt?'Ver dados importados':'View imported data'}</button><p id="btMessage" role="status"></p><div id="btImported"></div></div>`;
-}
-function bindBuildertrend(){
- const refresh=document.getElementById('btRefresh'); if(!refresh)return;
- const message=document.getElementById('btMessage');
- const show=async()=>{try{const r=await apiJson('/api/buildertrend/status');message.textContent=JSON.stringify(r);}catch(e){message.textContent=e.message;}};
- refresh.onclick=async()=>{refresh.disabled=true;try{await apiJson('/api/buildertrend/refresh',{method:'POST',body:'{}'});await show();}catch(e){message.textContent=e.message;}finally{refresh.disabled=false;}};
- document.getElementById('btStatus').onclick=show;
- document.getElementById('btInspect').onclick=async()=>{try{const r=await apiJson('/api/buildertrend/snapshot');document.getElementById('btImported').innerHTML=buildertrendImported(r);}catch(e){message.textContent=e.message;}};
- document.getElementById('btDownload').onclick=async()=>{try{const r=await apiJson('/api/buildertrend/snapshot');const u=URL.createObjectURL(new Blob([JSON.stringify(r,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='buildertrend-capture.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}catch(e){message.textContent=e.message;}};
- show();
-}
-
-function buildertrendImported(snapshot){
- const pt=currentLanguage==='pt', esc=escapeHtml;
- if(snapshot.schemaVersion!==2)return `<p>${pt?'Execute uma atualização com o worker v1.11.':'Run a refresh with the v1.11 worker.'}</p>`;
- const table=rows=>`<div class="table-wrap"><table class="table"><tbody>${rows.map(row=>`<tr>${row.map(v=>`<td>${esc(String(v??''))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
- return Object.values(snapshot.projects||{}).map(p=>{
- const sections=p.sections||{}, f=sections.summary?.fields||{};
- const labels=pt?['Preço revisado','Preço original','Imposto','Total pago','Saldo do contrato','Próximo pagamento']:['Revised price','Original price','Tax','Total paid','Remaining contract balance','Next payment'];
- const amounts=[f.revisedPrice,f.originalPrice,f.tax,f.totalPaid,f.remainingToPay];
- const summary=table(labels.map((label,i)=>[label,i<5?money(amounts[i]):f.nextPaymentText]));
- const schedule=table([[pt?'Título':'Title',pt?'Concluído':'Complete',pt?'Duração':'Duration',pt?'Início':'Start',pt?'Fim':'End'],...(sections.schedule?.records||[]).map(x=>[x.title,x.completed===null?'—':x.completed?(pt?'Sim':'Yes'):(pt?'Não':'No'),x.duration,x.startDate,x.endDate])]);
- const invoices=table([['ID',pt?'Título':'Title',pt?'Status':'Status',pt?'Valor':'Amount',pt?'Pago':'Paid',pt?'Saldo da fatura':'Invoice balance',pt?'Vencimento':'Due'],...(sections.invoices?.records||[]).map(x=>[x.customId,x.title,x.paymentStatus,x.invoiceAmount,x.amountPaid,x.invoiceBalance,x.deadline])]);
- const logs=table([[pt?'Data':'Date',pt?'Autor':'Author',pt?'Notas':'Notes'],...(sections.dailyLogs?.records||[]).map(x=>[x.dateLabel,x.author,x.notes])]);
- const photos=(sections.photos?.records||[]).map(x=>{let href='';try{const u=new URL(x.previewUrl);if(u.protocol==='https:'&&u.hostname==='buildertrend.net')href=u.href;}catch{}return `<div style="padding:8px"><strong>${esc(x.name)}</strong><p>${esc(x.details)}</p>${href?`<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${pt?'Abrir prévia no Buildertrend':'Open preview in Buildertrend'}</a>`:''}</div>`;}).join('');
- return `<section style="margin-top:20px"><h3>${esc(p.name)} · Buildertrend ${esc(p.sourceId)}</h3><p>${pt?'Dados importados separados dos registros manuais do Kairos. Filtros ativos no Buildertrend podem limitar os resultados.':'Imported data is displayed alongside your manual Kairos records. Active Buildertrend filters may limit results.'}</p>${[['summary',pt?'Finanças':'Finances',summary],['schedule',pt?'Cronograma':'Schedule',schedule],['invoices',pt?'Faturas':'Invoices',invoices],['dailyLogs',pt?'Diários':'Daily logs',logs],['photos',pt?'Prévias de fotos':'Photo previews',photos]].map(([key,label,html])=>`<details style="margin:12px 0"><summary>${label}${sections[key]?.records?' ('+sections[key].records.length+')':''}</summary><p>${esc(sections[key]?.coverage||'')}</p>${html}</details>`).join('')}</section>`;
- }).join('');
-}

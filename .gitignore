@@ -1,5 +1,5 @@
 node_modules/
-data/
 .env
-buildertrend/.private-profile/
-__pycache__/
+.DS_Store
+data/portal-state.json
+data/*.tmp
