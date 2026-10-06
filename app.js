@@ -13,7 +13,9 @@ const svgIcon = (name) => {
     plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
     user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>',
     upload:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 13v6h14v-6"/></svg>',
-    file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>'
+    file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>',
+    edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4l11-11-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>',
+    trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="m7 7 1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></svg>'
   }; return icons[name] || '';
 };
 
@@ -74,7 +76,22 @@ let selectedProjectId = null;
 let scheduleMode = 'gantt';
 
 function deepClone(x){ return JSON.parse(JSON.stringify(x)); }
-function loadState(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || deepClone(seed); } catch { return deepClone(seed); } }
+function normalizeState(raw){
+  const data=raw && typeof raw==='object'?raw:deepClone(seed);
+  data.users=Array.isArray(data.users)?data.users:[];
+  data.projects=Array.isArray(data.projects)?data.projects:[];
+  data.users.forEach(u=>{ if(!Array.isArray(u.projectIds))u.projectIds=[]; });
+  data.projects.forEach(p=>{
+    p.tasks=Array.isArray(p.tasks)?p.tasks:[];
+    p.photos=Array.isArray(p.photos)?p.photos:[];
+    p.expenses=Array.isArray(p.expenses)?p.expenses:[];
+    p.tasks=p.tasks.map(t=>({...t,id:t.id||uid('t'),code:t.code??'',name:t.name||'Untitled phase',progress:Number(t.progress)||0,duration:Number(t.duration)||daysBetweenInclusive(t.start,t.end)}));
+    p.photos=p.photos.map(ph=>({...ph,id:ph.id||uid('ph'),title:ph.title||'Project photo',date:ph.date||todayISO(),phase:ph.phase||'',url:ph.url||''}));
+    p.expenses=p.expenses.map(e=>({...e,id:e.id||uid('ex'),cat:e.cat||'Other',amount:Number(e.amount)||0,date:e.date||'',vendor:e.vendor||'',notes:e.notes||''}));
+  });
+  return data;
+}
+function loadState(){ try{ return normalizeState(JSON.parse(localStorage.getItem(STORE_KEY)) || deepClone(seed)); } catch { return normalizeState(deepClone(seed)); } }
 function saveState(){ localStorage.setItem(STORE_KEY,JSON.stringify(state)); }
 function loadSession(){ try{return JSON.parse(sessionStorage.getItem(SESSION_KEY)) || null}catch{return null} }
 function saveSession(){ sessionStorage.setItem(SESSION_KEY,JSON.stringify(session)); }
@@ -97,9 +114,13 @@ function taskStatusClass(t){ return ({done:'status-done',current:'status-live',o
 function daysBetweenInclusive(start,end){ if(!start||!end)return 1; const a=new Date(start+'T12:00:00'),b=new Date(end+'T12:00:00'); return Math.max(1,Math.round((b-a)/86400000)+1); }
 function scheduleCompletion(tasks=[]){
   if(!tasks.length)return 0;
-  const total=tasks.reduce((a,t)=>a+Math.max(1,Number(t.duration)||daysBetweenInclusive(t.start,t.end)),0);
-  const complete=tasks.reduce((a,t)=>a+(taskStatus(t)==='done'?Math.max(1,Number(t.duration)||daysBetweenInclusive(t.start,t.end)):0),0);
-  return total?Math.round(complete/total*100):0;
+  let total=0,weighted=0;
+  tasks.forEach(t=>{
+    const duration=Math.max(1,Number(t.duration)||daysBetweenInclusive(t.start,t.end));
+    const progress=Math.max(0,Math.min(100,taskStatus(t)==='done'?100:(Number(t.progress)||0)));
+    total+=duration; weighted+=duration*(progress/100);
+  });
+  return total?Math.round(weighted/total*100):0;
 }
 
 function currentUser(){ return state.users.find(u=>u.id===session?.userId); }
@@ -172,7 +193,7 @@ function phaseRow(t,i){
 function scheduleTemplate(p){
   const admin=currentUser().role==='admin';
   const src=p.scheduleSource;
-  return `<div class="page-head"><div><h1>Construction schedule</h1><p>Follow every construction phase and planned work from start through turnover.</p>${src?`<div class="schedule-source"><span>${svgIcon('file')}</span><span>Last Excel sync: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} phases</span></div>`:''}</div><div class="head-actions">${admin?`<button class="btn btn-outline" id="scheduleImportBtn">${svgIcon('upload')} Import Excel</button>`:''}<div class="tabs"><button data-smode="gantt" class="${scheduleMode==='gantt'?'active':''}">Gantt</button><button data-smode="list" class="${scheduleMode==='list'?'active':''}">List</button></div></div></div><div class="card">${scheduleMode==='gantt'?ganttTemplate(p):listScheduleTemplate(p)}</div>`;
+  return `<div class="page-head"><div><h1>Construction schedule</h1><p>Follow every construction phase and planned work from start through turnover.</p>${src?`<div class="schedule-source"><span>${svgIcon('file')}</span><span>Last Excel sync: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} phases</span></div>`:''}</div><div class="head-actions">${admin?`<button class="btn btn-soft" id="scheduleAddPhaseBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="scheduleImportBtn">${svgIcon('upload')} Import Excel</button>`:''}<div class="tabs"><button data-smode="gantt" class="${scheduleMode==='gantt'?'active':''}">Gantt</button><button data-smode="list" class="${scheduleMode==='list'?'active':''}">List</button></div></div></div><div class="card">${scheduleMode==='gantt'?ganttTemplate(p):listScheduleTemplate(p)}</div>`;
 }
 function monthStartFromISO(s){ const d=new Date(s+'T12:00:00'); return new Date(d.getFullYear(),d.getMonth(),1); }
 function monthDiff(a,b){ return (b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth()); }
@@ -195,25 +216,55 @@ function ganttTemplate(p){
   }).join('')}</div></div>`;
 }
 function listScheduleTemplate(p){
-  return `<div class="table-wrap"><table class="table schedule-table"><thead><tr><th>Code</th><th>Phase</th><th>Start</th><th>Finish</th><th>Days</th><th>Progress</th><th>Status</th></tr></thead><tbody>${p.tasks.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${Number(t.duration)||daysBetweenInclusive(t.start,t.end)}</td><td style="min-width:150px"><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td></tr>`).join('')}</tbody></table></div>`;
+  const admin=currentUser().role==='admin';
+  return `<div class="table-wrap"><table class="table schedule-table"><thead><tr><th>Code</th><th>Phase</th><th>Start</th><th>Finish</th><th>Days</th><th>Progress</th><th>Status</th>${admin?'<th>Actions</th>':''}</tr></thead><tbody>${p.tasks.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${Number(t.duration)||daysBetweenInclusive(t.start,t.end)}</td><td style="min-width:150px"><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><span class="table-progress-label">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td>${admin?`<td><div class="action-group"><button class="icon-action" title="Edit phase" data-edit-task="${t.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')}</tbody></table></div>`;
 }
 
-function photosTemplate(p){ const admin=currentUser().role==='admin'; return `<div class="page-head"><div><h1>Project photos</h1><p>Progress documentation organized by project and phase.</p></div>${admin?`<button class="btn btn-primary" id="addPhotoBtn">${svgIcon('plus')} Add photo</button>`:''}</div><div class="card"><div class="gallery">${p.photos.slice().reverse().map(photoCard).join('')||'<div class="empty">No photos have been uploaded for this project yet.</div>'}</div></div>`; }
-function photoCard(ph){return `<div class="photo"><img src="${ph.url}" alt="${escapeHtml(ph.title)}"><div class="photo-overlay"><strong>${escapeHtml(ph.title)}</strong><span>${escapeHtml(ph.phase||'Project update')} · ${fmtDate(ph.date)}</span></div></div>`}
+function photosTemplate(p){
+  const admin=currentUser().role==='admin';
+  return `<div class="page-head"><div><h1>Project photos</h1><p>Progress documentation organized by project and phase.</p></div>${admin?`<button class="btn btn-primary" id="addPhotoBtn">${svgIcon('plus')} Add photo</button>`:''}</div><div class="card"><div class="gallery">${p.photos.slice().reverse().map(ph=>photoCard(ph,admin)).join('')||'<div class="empty">No photos have been uploaded for this project yet.</div>'}</div></div>`;
+}
+function photoCard(ph,admin=false){
+  return `<div class="photo"><img src="${ph.url}" alt="${escapeHtml(ph.title)}"><div class="photo-overlay"><strong>${escapeHtml(ph.title)}</strong><span>${escapeHtml(ph.phase||'Project update')} · ${fmtDate(ph.date)}</span></div>${admin?`<div class="photo-admin-actions"><button class="icon-action light" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action light danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div>`:''}</div>`;
+}
 
-function financialTemplate(p){ const pct=Math.min(100,Math.round((p.invested/p.budget)*100)); const max=Math.max(...p.expenses.map(e=>e.amount),1); return `<div class="page-head"><div><h1>Investment & budget</h1><p>Investor-friendly visibility into budget utilization and project cost categories.</p></div></div><div class="grid grid-3"><div class="card metric"><span class="label">Approved project budget</span><div class="value">${money(p.budget)}</div><div class="muted" style="font-size:12px">Current authorized budget</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${pct}% utilized</div></div><div class="card metric"><span class="label">Remaining capital</span><div class="value">${money(Math.max(0,p.budget-p.invested))}</div><div class="muted" style="font-size:12px">Based on current budget</div></div></div><div class="card" style="margin-top:18px"><div class="card-head"><h3>Capital utilization</h3><span class="muted">Updated ${fmtDate(p.lastUpdate)}</span></div><div class="finance-wrap"><div><div class="donut" style="--pct:${pct}%"><div class="center"><strong>${pct}%</strong><span>budget utilized</span></div></div><div class="progress gold"><span style="width:${pct}%"></span></div></div><div><h3 style="margin:5px 0 18px;font-size:15px">Spend by category</h3><div class="spend-bars">${p.expenses.map(e=>`<div class="spend-item"><span>${escapeHtml(e.cat)}</span><div class="spend-track"><span style="width:${Math.round(e.amount/max*100)}%"></span></div><b>${money(e.amount)}</b></div>`).join('')}</div></div></div></div><div class="card pad" style="margin-top:18px"><strong style="font-size:13px">Investor note</strong><p class="muted" style="font-size:12px;line-height:1.7;margin-bottom:0">This dashboard is designed for transparency and project tracking. Production deployment can also include invoice documents, draw requests, payment history, change orders, and lender-specific reporting.</p></div>`; }
+function financialTemplate(p){
+  const admin=currentUser().role==='admin';
+  const pct=p.budget?Math.min(100,Math.round((p.invested/p.budget)*100)):0;
+  const max=Math.max(...p.expenses.map(e=>Number(e.amount)||0),1);
+  return `<div class="page-head"><div><h1>Investment & budget</h1><p>Investor-friendly visibility into budget utilization and project cost categories.</p></div>${admin?`<button class="btn btn-primary" id="financialAddExpenseBtn">${svgIcon('plus')} Add expense</button>`:''}</div><div class="grid grid-3"><div class="card metric"><span class="label">Approved project budget</span><div class="value">${money(p.budget)}</div><div class="muted" style="font-size:12px">Current authorized budget</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${pct}% utilized</div></div><div class="card metric"><span class="label">Remaining capital</span><div class="value">${money(Math.max(0,p.budget-p.invested))}</div><div class="muted" style="font-size:12px">Based on current budget</div></div></div><div class="card" style="margin-top:18px"><div class="card-head"><h3>Capital utilization</h3><span class="muted">Updated ${fmtDate(p.lastUpdate)}</span></div><div class="finance-wrap"><div><div class="donut" style="--pct:${pct}%"><div class="center"><strong>${pct}%</strong><span>budget utilized</span></div></div><div class="progress gold"><span style="width:${pct}%"></span></div></div><div><h3 style="margin:5px 0 18px;font-size:15px">Spend by category</h3><div class="spend-bars">${p.expenses.map(e=>`<div class="spend-item"><span>${escapeHtml(e.cat)}</span><div class="spend-track"><span style="width:${Math.round((Number(e.amount)||0)/max*100)}%"></span></div><b>${money(e.amount)}</b></div>`).join('')||'<div class="muted">No expenses entered yet.</div>'}</div></div></div></div>${admin?`<div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Expense ledger</h3><span class="muted">Edit or remove individual transactions</span></div><button class="btn btn-soft" id="financialAddExpenseBtn2">${svgIcon('plus')} Add expense</button></div>${expenseTableTemplate(p,true)}</div>`:''}<div class="card pad" style="margin-top:18px"><strong style="font-size:13px">Investor note</strong><p class="muted" style="font-size:12px;line-height:1.7;margin-bottom:0">This dashboard is designed for transparency and project tracking. Production deployment can also include invoice documents, draw requests, payment history, change orders, and lender-specific reporting.</p></div>`;
+}
 
-function adminTemplate(){ const users=state.users.filter(u=>u.role==='client'); return `<div class="page-head"><div><h1>Admin center</h1><p>Create client logins, assign projects, and manage project-specific schedules, photos, and financial updates.</p></div><div class="head-actions"><button class="btn btn-outline" id="newClientBtn">${svgIcon('user')} New client</button><button class="btn btn-primary" id="newProjectBtn">${svgIcon('plus')} New project</button></div></div><div class="grid grid-4"><div class="card metric"><span class="label">Client accounts</span><div class="value">${users.length}</div></div><div class="card metric"><span class="label">Active projects</span><div class="value">${state.projects.length}</div></div><div class="card metric"><span class="label">Portfolio budget</span><div class="value">${money(state.projects.reduce((a,p)=>a+p.budget,0))}</div></div><div class="card metric"><span class="label">Capital deployed</span><div class="value">${money(state.projects.reduce((a,p)=>a+p.invested,0))}</div></div></div><div class="admin-split" style="margin-top:18px"><div class="card list-card"><div class="card-head"><h3>Projects</h3><span class="muted">Select to manage</span></div>${state.projects.map(p=>`<div class="list-item ${p.id===selectedProjectId?'active':''}" data-admin-project="${p.id}"><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.address)} · ${p.completion}% complete</span></div>`).join('')}</div><div class="card" id="adminEditor">${adminEditorTemplate(currentProject())}</div></div><div class="card" style="margin-top:18px"><div class="card-head"><h3>Client login accounts</h3><span class="muted">Project access is segregated by assignment</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Email</th><th>Assigned project(s)</th><th>Role</th><th></th></tr></thead><tbody>${users.map(u=>`<tr><td><strong>${escapeHtml(u.name)}</strong></td><td>${escapeHtml(u.email)}</td><td>${u.projectIds.map(id=>state.projects.find(p=>p.id===id)?.name).filter(Boolean).join(', ')||'None'}</td><td><span class="pill">Client</span></td><td><button class="danger-link" data-delete-user="${u.id}">Delete</button></td></tr>`).join('')}</tbody></table></div></div>`; }
+function expenseTableTemplate(p,withActions=false){
+  return `<div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Category</th><th>Vendor / payee</th><th>Notes</th><th>Amount</th>${withActions?'<th>Actions</th>':''}</tr></thead><tbody>${p.expenses.map(e=>`<tr><td>${fmtDate(e.date)}</td><td><strong>${escapeHtml(e.cat)}</strong></td><td>${escapeHtml(e.vendor||'—')}</td><td class="wrap-cell">${escapeHtml(e.notes||'—')}</td><td><strong>${money(e.amount)}</strong></td>${withActions?`<td><div class="action-group"><button class="icon-action" title="Edit expense" data-edit-expense="${e.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete expense" data-delete-expense="${e.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')||`<tr><td colspan="${withActions?6:5}" class="muted">No expenses have been added.</td></tr>`}</tbody></table></div>`;
+}
+
+function adminTemplate(){
+  const users=state.users.filter(u=>u.role==='client');
+  return `<div class="page-head"><div><h1>Admin center</h1><p>Full editing control for client access, projects, construction phases, photos, expenses, budgets, and schedule imports.</p></div><div class="head-actions"><button class="btn btn-outline" id="newClientBtn">${svgIcon('user')} New client</button><button class="btn btn-primary" id="newProjectBtn">${svgIcon('plus')} New project</button></div></div>
+  <div class="grid grid-4"><div class="card metric"><span class="label">Client accounts</span><div class="value">${users.length}</div></div><div class="card metric"><span class="label">Active projects</span><div class="value">${state.projects.length}</div></div><div class="card metric"><span class="label">Portfolio budget</span><div class="value">${money(state.projects.reduce((a,p)=>a+(Number(p.budget)||0),0))}</div></div><div class="card metric"><span class="label">Capital deployed</span><div class="value">${money(state.projects.reduce((a,p)=>a+(Number(p.invested)||0),0))}</div></div></div>
+  <div class="admin-split" style="margin-top:18px"><div class="card list-card"><div class="card-head"><h3>Projects</h3><span class="muted">Select to manage</span></div>${state.projects.map(p=>`<div class="list-item ${p.id===selectedProjectId?'active':''}" data-admin-project="${p.id}"><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.address)} · ${p.completion}% complete</span></div>`).join('')||'<div class="empty">No projects yet.</div>'}</div><div class="card" id="adminEditor">${adminEditorTemplate(currentProject())}</div></div>
+  <div class="card admin-section" style="margin-top:18px"><div class="card-head"><div><h3>Client login accounts</h3><span class="muted">Edit credentials and project access assignments</span></div><button class="btn btn-soft" id="newClientBtn2">${svgIcon('user')} New client</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Email</th><th>Assigned project(s)</th><th>Role</th><th>Actions</th></tr></thead><tbody>${users.map(u=>`<tr><td><strong>${escapeHtml(u.name)}</strong></td><td>${escapeHtml(u.email)}</td><td class="wrap-cell">${u.projectIds.map(id=>state.projects.find(p=>p.id===id)?.name).filter(Boolean).map(escapeHtml).join(', ')||'None'}</td><td><span class="pill">Client</span></td><td><div class="action-group"><button class="icon-action" title="Edit client" data-edit-user="${u.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete client" data-delete-user="${u.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="5" class="muted">No client accounts yet.</td></tr>'}</tbody></table></div></div>`;
+}
 
 function adminEditorTemplate(p){
   if(!p)return '<div class="empty">Create a project to begin.</div>';
   const client=state.users.find(u=>u.id===p.clientId);
   const src=p.scheduleSource;
-  return `<div class="card-head"><div><h3>${escapeHtml(p.name)}</h3><span class="muted">${escapeHtml(p.address)}</span></div><button class="btn btn-soft" id="editProjectBtn">Edit project</button></div>
-  <div class="pad"><div class="grid grid-3"><div><div class="muted mini-label">Assigned client</div><strong class="mini-value">${escapeHtml(client?.name||'Unassigned')}</strong></div><div><div class="muted mini-label">Budget</div><strong class="mini-value">${money(p.budget)}</strong></div><div><div class="muted mini-label">Completion</div><strong class="mini-value">${p.completion}%</strong></div></div><div class="progress" style="margin:18px 0 22px"><span style="width:${p.completion}%"></span></div>
-  <div class="schedule-import-box"><div class="schedule-import-icon">${svgIcon('file')}</div><div class="schedule-import-copy"><strong>Excel construction schedule</strong>${src?`<span>Synced from <b>${escapeHtml(src.fileName)}</b> on ${fmtDate(src.importedDate)} · ${src.rows} phases</span>`:'<span>No spreadsheet has been imported for this project yet.</span>'}<small>Upload this project's spreadsheet to replace or merge phases, dates, completion flags, duration, and project schedule dates.</small></div><div class="schedule-import-actions"><button class="btn btn-primary" id="importScheduleBtn">${svgIcon('upload')} ${src?'Update from Excel':'Import Excel'}</button><a class="btn btn-soft" href="Kairos_Construction_Schedule_Template.xlsx" download>Template</a>${p.scheduleBackup?'<button class="btn btn-soft" id="undoScheduleImportBtn">Undo last import</button>':''}</div></div>
-  <div class="admin-action-row"><button class="btn btn-outline" id="addTaskBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="adminAddPhotoBtn">${svgIcon('plus')} Add photo</button><button class="btn btn-outline" id="addExpenseBtn">${svgIcon('plus')} Add expense</button></div></div>
-  <div class="card-head"><h3>Project phases</h3><span class="muted">${p.tasks.length} schedule items</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Dates</th><th>Days</th><th>Status</th><th></th></tr></thead><tbody>${p.tasks.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong></td><td>${fmtDate(t.start)} → ${fmtDate(t.end)}</td><td>${Number(t.duration)||daysBetweenInclusive(t.start,t.end)}</td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td><td><button class="danger-link" data-delete-task="${t.id}">Delete</button></td></tr>`).join('')}</tbody></table></div>`;
+  return `<div class="card-head"><div><h3>${escapeHtml(p.name)}</h3><span class="muted">${escapeHtml(p.address)}</span></div><div class="head-actions"><button class="btn btn-soft" id="editProjectBtn">${svgIcon('edit')} Edit project</button><button class="btn btn-danger-soft" id="deleteProjectBtn">${svgIcon('trash')} Delete</button></div></div>
+  <div class="pad">
+    <div class="grid grid-3"><div><div class="muted mini-label">Assigned client</div><strong class="mini-value">${escapeHtml(client?.name||'Unassigned')}</strong></div><div><div class="muted mini-label">Budget</div><strong class="mini-value">${money(p.budget)}</strong></div><div><div class="muted mini-label">Completion</div><strong class="mini-value">${p.completion}%</strong></div></div><div class="progress" style="margin:18px 0 22px"><span style="width:${p.completion}%"></span></div>
+    <div class="schedule-import-box"><div class="schedule-import-icon">${svgIcon('file')}</div><div class="schedule-import-copy"><strong>Excel construction schedule</strong>${src?`<span>Synced from <b>${escapeHtml(src.fileName)}</b> on ${fmtDate(src.importedDate)} · ${src.rows} phases</span>`:'<span>No spreadsheet has been imported for this project yet.</span>'}<small>Upload this project's spreadsheet to replace or merge phases, dates, completion flags, duration, and project schedule dates.</small></div><div class="schedule-import-actions"><button class="btn btn-primary" id="importScheduleBtn">${svgIcon('upload')} ${src?'Update from Excel':'Import Excel'}</button><a class="btn btn-soft" href="Kairos_Construction_Schedule_Template.xlsx" download>Template</a>${p.scheduleBackup?'<button class="btn btn-soft" id="undoScheduleImportBtn">Undo last import</button>':''}</div></div>
+    <div class="admin-action-row"><button class="btn btn-outline" id="addTaskBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="adminAddPhotoBtn">${svgIcon('plus')} Add photo</button><button class="btn btn-outline" id="addExpenseBtn">${svgIcon('plus')} Add expense</button></div>
+  </div>
+
+  <div class="admin-subsection"><div class="card-head"><div><h3>Project phases</h3><span class="muted">${p.tasks.length} schedule items · click Edit to change dates, progress, code, or name</span></div><button class="btn btn-soft" id="addTaskBtn2">${svgIcon('plus')} Add phase</button></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Dates</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead><tbody>${p.tasks.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong></td><td>${fmtDate(t.start)} → ${fmtDate(t.end)}</td><td><span class="mini-progress">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td><td><div class="action-group"><button class="icon-action" title="Edit phase" data-edit-task="${t.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="muted">No construction phases yet.</td></tr>'}</tbody></table></div></div>
+
+  <div class="admin-subsection"><div class="card-head"><div><h3>Project photos</h3><span class="muted">${p.photos.length} uploaded photos · edit title, date, phase, or replace the image</span></div><button class="btn btn-soft" id="adminAddPhotoBtn2">${svgIcon('plus')} Add photo</button></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Photo</th><th>Title</th><th>Phase</th><th>Date</th><th>Actions</th></tr></thead><tbody>${p.photos.slice().reverse().map(ph=>`<tr><td><img class="table-thumb" src="${ph.url}" alt=""></td><td><strong>${escapeHtml(ph.title)}</strong></td><td>${escapeHtml(ph.phase||'—')}</td><td>${fmtDate(ph.date)}</td><td><div class="action-group"><button class="icon-action" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="5" class="muted">No photos uploaded yet.</td></tr>'}</tbody></table></div></div>
+
+  <div class="admin-subsection"><div class="card-head"><div><h3>Project expenses</h3><span class="muted">${p.expenses.length} entries · invested total ${money(p.invested)}</span></div><button class="btn btn-soft" id="addExpenseBtn2">${svgIcon('plus')} Add expense</button></div>${expenseTableTemplate(p,true)}</div>`;
 }
 
 function bindView(){
@@ -221,26 +272,118 @@ function bindView(){
   document.querySelectorAll('[data-smode]').forEach(b=>b.onclick=()=>{scheduleMode=b.dataset.smode;renderView();});
   const addPhoto=document.getElementById('addPhotoBtn'); if(addPhoto)addPhoto.onclick=()=>openPhotoModal();
   const si=document.getElementById('scheduleImportBtn'); if(si)si.onclick=openScheduleImportModal;
+  const sap=document.getElementById('scheduleAddPhaseBtn'); if(sap)sap.onclick=()=>openTaskModal();
+  const fe=document.getElementById('financialAddExpenseBtn'); if(fe)fe.onclick=()=>openExpenseModal();
+  const fe2=document.getElementById('financialAddExpenseBtn2'); if(fe2)fe2.onclick=()=>openExpenseModal();
+
+  document.querySelectorAll('[data-edit-task]').forEach(b=>b.onclick=()=>{const t=currentProject()?.tasks.find(x=>x.id===b.dataset.editTask);if(t)openTaskModal(t);});
+  document.querySelectorAll('[data-delete-task]').forEach(b=>b.onclick=()=>deleteTask(b.dataset.deleteTask));
+  document.querySelectorAll('[data-edit-photo]').forEach(b=>b.onclick=()=>{const ph=currentProject()?.photos.find(x=>x.id===b.dataset.editPhoto);if(ph)openPhotoModal(ph);});
+  document.querySelectorAll('[data-delete-photo]').forEach(b=>b.onclick=()=>deletePhoto(b.dataset.deletePhoto));
+  document.querySelectorAll('[data-edit-expense]').forEach(b=>b.onclick=()=>{const ex=currentProject()?.expenses.find(x=>x.id===b.dataset.editExpense);if(ex)openExpenseModal(ex);});
+  document.querySelectorAll('[data-delete-expense]').forEach(b=>b.onclick=()=>deleteExpense(b.dataset.deleteExpense));
+
   if(currentView==='admin') bindAdmin();
 }
 
 function bindAdmin(){
   document.querySelectorAll('[data-admin-project]').forEach(x=>x.onclick=()=>{selectedProjectId=x.dataset.adminProject;renderView();});
-  const nc=document.getElementById('newClientBtn'); if(nc)nc.onclick=openClientModal;
+  const nc=document.getElementById('newClientBtn'); if(nc)nc.onclick=()=>openClientModal();
+  const nc2=document.getElementById('newClientBtn2'); if(nc2)nc2.onclick=()=>openClientModal();
   const np=document.getElementById('newProjectBtn'); if(np)np.onclick=()=>openProjectModal();
   const ep=document.getElementById('editProjectBtn'); if(ep)ep.onclick=()=>openProjectModal(currentProject());
-  const at=document.getElementById('addTaskBtn'); if(at)at.onclick=openTaskModal;
-  const ap=document.getElementById('adminAddPhotoBtn'); if(ap)ap.onclick=openPhotoModal;
-  const ae=document.getElementById('addExpenseBtn'); if(ae)ae.onclick=openExpenseModal;
+  const dp=document.getElementById('deleteProjectBtn'); if(dp)dp.onclick=()=>deleteProject(currentProject()?.id);
+  const at=document.getElementById('addTaskBtn'); if(at)at.onclick=()=>openTaskModal();
+  const at2=document.getElementById('addTaskBtn2'); if(at2)at2.onclick=()=>openTaskModal();
+  const ap=document.getElementById('adminAddPhotoBtn'); if(ap)ap.onclick=()=>openPhotoModal();
+  const ap2=document.getElementById('adminAddPhotoBtn2'); if(ap2)ap2.onclick=()=>openPhotoModal();
+  const ae=document.getElementById('addExpenseBtn'); if(ae)ae.onclick=()=>openExpenseModal();
+  const ae2=document.getElementById('addExpenseBtn2'); if(ae2)ae2.onclick=()=>openExpenseModal();
   const im=document.getElementById('importScheduleBtn'); if(im)im.onclick=openScheduleImportModal;
   const undo=document.getElementById('undoScheduleImportBtn'); if(undo)undo.onclick=undoLastScheduleImport;
-  document.querySelectorAll('[data-delete-user]').forEach(b=>b.onclick=()=>{if(confirm('Delete this client login?')){state.users=state.users.filter(u=>u.id!==b.dataset.deleteUser);saveState();render();}});
-  document.querySelectorAll('[data-delete-task]').forEach(b=>b.onclick=()=>{const p=currentProject();p.tasks=p.tasks.filter(t=>t.id!==b.dataset.deleteTask);p.completion=scheduleCompletion(p.tasks);p.lastUpdate=todayISO();saveState();renderView();});
+
+  document.querySelectorAll('[data-edit-user]').forEach(b=>b.onclick=()=>{const u=state.users.find(x=>x.id===b.dataset.editUser);if(u)openClientModal(u);});
+  document.querySelectorAll('[data-delete-user]').forEach(b=>b.onclick=()=>deleteClient(b.dataset.deleteUser));
+}
+
+function recalcProjectInvestment(p){
+  p.invested=p.expenses.reduce((a,x)=>a+(Number(x.amount)||0),0);
+  p.lastUpdate=todayISO();
+}
+function deleteTask(id){
+  const p=currentProject(); if(!p)return;
+  const t=p.tasks.find(x=>x.id===id); if(!t)return;
+  if(!confirm(`Delete construction phase "${t.name}"?`))return;
+  p.tasks=p.tasks.filter(x=>x.id!==id); p.completion=scheduleCompletion(p.tasks); p.lastUpdate=todayISO(); saveState(); renderView(); toast('Phase deleted');
+}
+function deletePhoto(id){
+  const p=currentProject(); if(!p)return;
+  const ph=p.photos.find(x=>x.id===id); if(!ph)return;
+  if(!confirm(`Delete photo "${ph.title}"?`))return;
+  p.photos=p.photos.filter(x=>x.id!==id); p.lastUpdate=todayISO(); saveState(); renderView(); toast('Photo deleted');
+}
+function deleteExpense(id){
+  const p=currentProject(); if(!p)return;
+  const ex=p.expenses.find(x=>x.id===id); if(!ex)return;
+  if(!confirm(`Delete expense "${ex.cat}" for ${money(ex.amount)}?`))return;
+  p.expenses=p.expenses.filter(x=>x.id!==id); recalcProjectInvestment(p); saveState(); renderView(); toast('Expense deleted');
+}
+function deleteClient(id){
+  const u=state.users.find(x=>x.id===id); if(!u)return;
+  if(!confirm(`Delete client login "${u.name}"? Their project data will remain, but access will be removed.`))return;
+  state.projects.forEach(p=>{if(p.clientId===id)p.clientId='';});
+  state.users=state.users.filter(x=>x.id!==id);
+  saveState(); render(); toast('Client login deleted');
+}
+
+function deleteProject(id){
+  const p=state.projects.find(x=>x.id===id); if(!p)return;
+  if(!confirm(`Delete project "${p.name}" and all of its phases, photos, and expenses? This cannot be undone in this browser.`))return;
+  state.projects=state.projects.filter(x=>x.id!==id);
+  state.users.forEach(u=>u.projectIds=(u.projectIds||[]).filter(pid=>pid!==id));
+  selectedProjectId=state.projects[0]?.id||null;
+  saveState(); render(); toast('Project deleted');
 }
 
 function modal(title,body,onBind){ const wrap=document.createElement('div');wrap.className='modal-backdrop';wrap.innerHTML=`<div class="modal"><div class="modal-head"><h3>${title}</h3><button class="close">×</button></div><div class="modal-body">${body}</div></div>`;document.body.appendChild(wrap);const close=()=>wrap.remove();wrap.querySelector('.close').onclick=close;wrap.onclick=e=>{if(e.target===wrap)close()};onBind?.(wrap,close); }
 
-function openClientModal(){ modal('Create client login',`<form id="clientForm"><div class="form-grid"><div class="field full"><label>Client / investor name</label><input class="input" name="name" required></div><div class="field"><label>Email</label><input class="input" type="email" name="email" required></div><div class="field"><label>Temporary password</label><input class="input" name="password" required></div><div class="field full"><label>Assign project(s)</label><select class="select" name="projectId"><option value="">No project yet</option>${state.projects.map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')}</select></div></div><div class="form-actions"><button class="btn btn-primary">Create account</button></div></form>`,(w,close)=>{w.querySelector('#clientForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);if(state.users.some(u=>u.email.toLowerCase()===f.get('email').toLowerCase())){toast('Email already exists');return}const projectId=f.get('projectId');const u={id:uid('u'),name:f.get('name'),email:f.get('email'),password:f.get('password'),role:'client',projectIds:projectId?[projectId]:[]};state.users.push(u);if(projectId){const p=state.projects.find(x=>x.id===projectId);p.clientId=u.id}saveState();close();render();toast('Client account created');};}); }
+function openClientModal(user=null){
+  const editing=!!user;
+  const assigned=new Set(user?.projectIds||[]);
+  modal(editing?'Edit client login':'Create client login',`<form id="clientForm"><div class="form-grid">
+    <div class="field full"><label>Client / investor name</label><input class="input" name="name" value="${attr(user?.name||'')}" required></div>
+    <div class="field"><label>Email</label><input class="input" type="email" name="email" value="${attr(user?.email||'')}" required></div>
+    <div class="field"><label>${editing?'New password (optional)':'Temporary password'}</label><input class="input" name="password" ${editing?'placeholder="Leave blank to keep current password"':'required'}></div>
+    <div class="field full"><label>Project access</label><div class="project-check-grid">${state.projects.map(p=>`<label class="project-check"><input type="checkbox" name="projectIds" value="${p.id}" ${assigned.has(p.id)?'checked':''}><span><strong>${escapeHtml(p.name)}</strong><small>${escapeHtml(p.address)}</small></span></label>`).join('')||'<span class="muted">Create a project first, then assign access here.</span>'}</div><small class="muted">A client only sees projects checked here. Assigning a project to this client makes them the primary client for that project.</small></div>
+  </div><div class="form-actions"><button class="btn btn-primary">${editing?'Save client':'Create account'}</button></div></form>`,(w,close)=>{
+    w.querySelector('#clientForm').onsubmit=e=>{
+      e.preventDefault(); const f=new FormData(e.target);
+      const email=String(f.get('email')||'').trim();
+      if(state.users.some(u=>u.id!==user?.id && u.email.toLowerCase()===email.toLowerCase())){toast('Email already exists');return}
+      const projectIds=f.getAll('projectIds').map(String);
+      if(editing){
+        user.name=String(f.get('name')||'').trim(); user.email=email;
+        const pw=String(f.get('password')||''); if(pw)user.password=pw;
+        const oldIds=new Set(user.projectIds||[]);
+        user.projectIds=projectIds;
+        state.projects.forEach(p=>{
+          if(projectIds.includes(p.id)){
+            p.clientId=user.id;
+            state.users.filter(u=>u.role==='client'&&u.id!==user.id).forEach(u=>u.projectIds=(u.projectIds||[]).filter(id=>id!==p.id));
+          } else if(oldIds.has(p.id) && p.clientId===user.id) p.clientId='';
+        });
+      } else {
+        const u={id:uid('u'),name:String(f.get('name')||'').trim(),email,password:String(f.get('password')||''),role:'client',projectIds};
+        state.users.push(u);
+        projectIds.forEach(pid=>{
+          const p=state.projects.find(x=>x.id===pid); if(p)p.clientId=u.id;
+          state.users.filter(x=>x.role==='client'&&x.id!==u.id).forEach(x=>x.projectIds=(x.projectIds||[]).filter(id=>id!==pid));
+        });
+      }
+      saveState(); close(); render(); toast(editing?'Client updated':'Client account created');
+    };
+  });
+}
 
 function openProjectModal(p=null){ const clients=state.users.filter(u=>u.role==='client'); modal(p?'Edit project':'Create project',`<form id="projectForm"><div class="form-grid"><div class="field full"><label>Project name</label><input class="input" name="name" value="${attr(p?.name||'')}" required></div><div class="field full"><label>Project address / location</label><input class="input" name="address" value="${attr(p?.address||'')}" required></div><div class="field"><label>Client account</label><select class="select" name="clientId"><option value="">Unassigned</option>${clients.map(u=>`<option value="${u.id}" ${p?.clientId===u.id?'selected':''}>${escapeHtml(u.name)}</option>`).join('')}</select></div><div class="field"><label>Status</label><select class="select" name="status">${['Pre-Construction','In Construction','Punch List','Complete'].map(x=>`<option ${p?.status===x?'selected':''}>${x}</option>`).join('')}</select></div><div class="field"><label>Start date</label><input class="input" type="date" name="start" value="${p?.start||''}" required></div><div class="field"><label>Target completion</label><input class="input" type="date" name="target" value="${p?.target||''}" required></div><div class="field"><label>Total budget</label><input class="input" type="number" name="budget" value="${p?.budget||0}" required></div><div class="field"><label>Invested to date</label><input class="input" type="number" name="invested" value="${p?.invested||0}" required></div><div class="field"><label>Completion %</label><input class="input" type="number" min="0" max="100" name="completion" value="${p?.completion||0}" required></div><div class="field full"><label>Project summary</label><textarea class="textarea" name="summary">${escapeHtml(p?.summary||'')}</textarea></div></div><div class="form-actions"><button class="btn btn-primary">${p?'Save changes':'Create project'}</button></div></form>`,(w,close)=>{w.querySelector('#projectForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);const clientId=f.get('clientId');if(p){Object.assign(p,{name:f.get('name'),address:f.get('address'),clientId,status:f.get('status'),start:f.get('start'),target:f.get('target'),budget:+f.get('budget'),invested:+f.get('invested'),completion:+f.get('completion'),summary:f.get('summary'),lastUpdate:new Date().toISOString().slice(0,10)});}else{p={id:uid('p'),name:f.get('name'),address:f.get('address'),clientId,status:f.get('status'),start:f.get('start'),target:f.get('target'),budget:+f.get('budget'),invested:+f.get('invested'),completion:+f.get('completion'),summary:f.get('summary'),lastUpdate:new Date().toISOString().slice(0,10),tasks:[],photos:[],expenses:[]};state.projects.push(p);selectedProjectId=p.id}state.users.filter(u=>u.role==='client').forEach(u=>{u.projectIds=u.projectIds.filter(id=>id!==p.id);if(u.id===clientId&&!u.projectIds.includes(p.id))u.projectIds.push(p.id)});saveState();close();render();toast(p?'Project updated':'Project created');};}); }
 
@@ -427,20 +570,75 @@ function undoLastScheduleImport(){
   saveState(); renderView(); toast('Previous project schedule restored');
 }
 
-function openTaskModal(){
-  const p=currentProject();
-  modal('Add construction phase',`<form id="taskForm"><div class="form-grid"><div class="field"><label>Phase code</label><input class="input" name="code" placeholder="e.g. 340" required></div><div class="field"><label>Phase / trade name</label><input class="input" name="name" required></div><div class="field"><label>Start date</label><input class="input" type="date" name="start" required></div><div class="field"><label>Finish date</label><input class="input" type="date" name="end" required></div><div class="field"><label>Progress %</label><input class="input" type="number" min="0" max="100" name="progress" value="0" required></div></div><div class="form-actions"><button class="btn btn-primary">Add phase</button></div></form>`,(w,close)=>{
+function openTaskModal(task=null){
+  const p=currentProject(); if(!p)return;
+  const editing=!!task;
+  modal(editing?'Edit construction phase':'Add construction phase',`<form id="taskForm"><div class="form-grid">
+    <div class="field"><label>Phase code</label><input class="input" name="code" placeholder="e.g. 340" value="${attr(task?.code||'')}" required></div>
+    <div class="field"><label>Phase / trade name</label><input class="input" name="name" value="${attr(task?.name||'')}" required></div>
+    <div class="field"><label>Start date</label><input class="input" type="date" name="start" value="${task?.start||''}" required></div>
+    <div class="field"><label>Finish date</label><input class="input" type="date" name="end" value="${task?.end||''}" required></div>
+    <div class="field"><label>Progress %</label><input class="input" type="number" min="0" max="100" name="progress" value="${Number(task?.progress)||0}" required></div>
+    <div class="field"><label>Duration (days)</label><input class="input" type="number" min="1" name="duration" value="${task?Number(task.duration)||daysBetweenInclusive(task.start,task.end):''}" placeholder="Calculated from dates"></div>
+  </div><div class="form-actions"><button class="btn btn-primary">${editing?'Save phase':'Add phase'}</button></div></form>`,(w,close)=>{
     w.querySelector('#taskForm').onsubmit=e=>{
-      e.preventDefault(); const f=new FormData(e.target),prog=+f.get('progress'),start=f.get('start'),end=f.get('end');
-      const t={id:uid('t'),code:f.get('code'),name:f.get('name'),start,end,duration:daysBetweenInclusive(start,end),progress:prog,status:prog===100?'done':prog>0?'current':statusForImportedTask(false,start,end)};
-      p.tasks.push(t); p.completion=scheduleCompletion(p.tasks); p.lastUpdate=todayISO(); saveState(); close(); renderView(); toast('Phase added');
+      e.preventDefault(); const f=new FormData(e.target);
+      const prog=Math.max(0,Math.min(100,+f.get('progress')||0)),start=f.get('start'),end=f.get('end');
+      if(start && end && end<start){toast('Finish date cannot be before the start date');return}
+      const duration=Math.max(1,+f.get('duration')||daysBetweenInclusive(start,end));
+      const values={code:String(f.get('code')||'').trim(),name:String(f.get('name')||'').trim(),start,end,duration,progress:prog,status:prog===100?'done':prog>0?'current':statusForImportedTask(false,start,end)};
+      if(editing)Object.assign(task,values); else p.tasks.push({id:uid('t'),...values});
+      p.tasks.sort((a,b)=>(a.start||'9999').localeCompare(b.start||'9999') || String(a.code||'').localeCompare(String(b.code||'')));
+      p.completion=scheduleCompletion(p.tasks); p.lastUpdate=todayISO(); saveState(); close(); renderView(); toast(editing?'Phase updated':'Phase added');
     };
   });
 }
 
-function openPhotoModal(){ const p=currentProject(); modal('Add project photo',`<form id="photoForm"><div class="form-grid"><div class="field full"><label>Photo title</label><input class="input" name="title" required></div><div class="field"><label>Date</label><input class="input" type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></div><div class="field"><label>Project phase</label><input class="input" name="phase" placeholder="Framing, HVAC, Exterior…"></div><div class="field full"><label>Image file</label><input class="input" type="file" name="file" accept="image/*" required><small class="muted">In this prototype, photos are stored in your browser. Production storage would use private cloud object storage.</small></div></div><div class="form-actions"><button class="btn btn-primary">Upload photo</button></div></form>`,(w,close)=>{w.querySelector('#photoForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target),file=f.get('file');const reader=new FileReader();reader.onload=()=>{p.photos.push({id:uid('ph'),title:f.get('title'),date:f.get('date'),phase:f.get('phase'),url:reader.result});p.lastUpdate=new Date().toISOString().slice(0,10);try{saveState();}catch(err){toast('Image is too large for browser demo storage');return}close();render();toast('Photo uploaded');};reader.readAsDataURL(file);};}); }
+function openPhotoModal(photo=null){
+  const p=currentProject(); if(!p)return;
+  const editing=!!photo;
+  const phaseOptions=p.tasks.map(t=>t.name).filter(Boolean);
+  modal(editing?'Edit project photo':'Add project photo',`<form id="photoForm"><div class="form-grid">
+    ${editing&&photo.url?`<div class="field full"><label>Current image</label><img class="modal-photo-preview" src="${photo.url}" alt=""></div>`:''}
+    <div class="field full"><label>Photo title</label><input class="input" name="title" value="${attr(photo?.title||'')}" required></div>
+    <div class="field"><label>Date</label><input class="input" type="date" name="date" value="${photo?.date||todayISO()}" required></div>
+    <div class="field"><label>Project phase</label><input class="input" name="phase" list="phaseNames" value="${attr(photo?.phase||'')}" placeholder="Framing, HVAC, Exterior…"><datalist id="phaseNames">${phaseOptions.map(x=>`<option value="${attr(x)}"></option>`).join('')}</datalist></div>
+    <div class="field full"><label>${editing?'Replace image (optional)':'Image file'}</label><input class="input" type="file" name="file" accept="image/*" ${editing?'':'required'}><small class="muted">${editing?'Leave empty to keep the current image. ':''}In this prototype, photos are stored in your browser. Production storage should use private cloud object storage.</small></div>
+  </div><div class="form-actions"><button class="btn btn-primary">${editing?'Save photo':'Upload photo'}</button></div></form>`,(w,close)=>{
+    w.querySelector('#photoForm').onsubmit=e=>{
+      e.preventDefault(); const f=new FormData(e.target),file=f.get('file');
+      const savePhoto=(url)=>{
+        const values={title:String(f.get('title')||'').trim(),date:String(f.get('date')||''),phase:String(f.get('phase')||'').trim(),url:url||photo?.url||''};
+        if(editing)Object.assign(photo,values); else p.photos.push({id:uid('ph'),...values});
+        p.lastUpdate=todayISO();
+        try{saveState();}catch(err){toast('Image is too large for browser demo storage');return}
+        close(); renderView(); toast(editing?'Photo updated':'Photo uploaded');
+      };
+      if(file && file.size){
+        const reader=new FileReader(); reader.onload=()=>savePhoto(reader.result); reader.readAsDataURL(file);
+      } else savePhoto(photo?.url||'');
+    };
+  });
+}
 
-function openExpenseModal(){ const p=currentProject(); modal('Add project expense',`<form id="expenseForm"><div class="form-grid"><div class="field"><label>Category</label><input class="input" name="cat" placeholder="Windows / Exterior" required></div><div class="field"><label>Amount</label><input class="input" type="number" name="amount" min="0" required></div></div><div class="form-actions"><button class="btn btn-primary">Add expense</button></div></form>`,(w,close)=>{w.querySelector('#expenseForm').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);p.expenses.push({cat:f.get('cat'),amount:+f.get('amount')});p.invested=p.expenses.reduce((a,x)=>a+x.amount,0);p.lastUpdate=new Date().toISOString().slice(0,10);saveState();close();render();toast('Expense added');};}); }
+function openExpenseModal(expense=null){
+  const p=currentProject(); if(!p)return;
+  const editing=!!expense;
+  modal(editing?'Edit project expense':'Add project expense',`<form id="expenseForm"><div class="form-grid">
+    <div class="field"><label>Category</label><input class="input" name="cat" value="${attr(expense?.cat||'')}" placeholder="Windows / Exterior" required></div>
+    <div class="field"><label>Amount</label><input class="input" type="number" name="amount" min="0" step="0.01" value="${expense?.amount??''}" required></div>
+    <div class="field"><label>Date</label><input class="input" type="date" name="date" value="${expense?.date||todayISO()}"></div>
+    <div class="field"><label>Vendor / payee</label><input class="input" name="vendor" value="${attr(expense?.vendor||'')}" placeholder="Contractor or supplier"></div>
+    <div class="field full"><label>Notes</label><textarea class="textarea" name="notes" placeholder="Invoice, draw, scope, or payment note">${escapeHtml(expense?.notes||'')}</textarea></div>
+  </div><div class="form-actions"><button class="btn btn-primary">${editing?'Save expense':'Add expense'}</button></div></form>`,(w,close)=>{
+    w.querySelector('#expenseForm').onsubmit=e=>{
+      e.preventDefault(); const f=new FormData(e.target);
+      const values={cat:String(f.get('cat')||'').trim(),amount:+f.get('amount')||0,date:String(f.get('date')||''),vendor:String(f.get('vendor')||'').trim(),notes:String(f.get('notes')||'').trim()};
+      if(editing)Object.assign(expense,values); else p.expenses.push({id:uid('ex'),...values});
+      recalcProjectInvestment(p); saveState(); close(); renderView(); toast(editing?'Expense updated':'Expense added');
+    };
+  });
+}
 
 function escapeHtml(s=''){ return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function attr(s=''){ return escapeHtml(s); }

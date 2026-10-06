@@ -1,6 +1,22 @@
-# Kairos Legacy Homes — Investor Portal v1.1 (Render-ready)
+# Kairos Legacy Homes — Investor Portal v1.2 (Render-ready)
 
-This package is ready to deploy as a Node.js web service on Render and now includes **project-specific Excel schedule import**.
+This package is ready to deploy as a Node.js web service on Render and includes **project-specific Excel schedule import plus full administrator editing controls**.
+
+
+## New: full Admin editing
+
+The Admin Center now allows individual editing and deletion across the project record:
+
+- **Project details** — name, address, assigned client, status, start date, target date, total budget, invested amount, completion %, and summary.
+- **Construction phases** — add, edit, or delete each phase; change phase code, name, start/finish dates, duration, and progress %.
+- **Project photos** — add, edit metadata, change date/phase/title, optionally replace the image, or delete a photo.
+- **Expenses** — add, edit, or delete each expense, including category, amount, date, vendor/payee, and notes. The invested total is recalculated from the expense ledger when expenses are changed.
+- **Client logins** — edit client name/email, optionally reset password, change project access assignments, or delete the login.
+- **Projects** — create, edit, and delete entire projects. Deleting a project also removes its assignment from client accounts.
+
+Admins can also edit phases directly from the **Schedule > List** view, edit/delete photos directly from the **Photos** page, and edit/delete expenses directly from the **Investment** page.
+
+Existing browser data from the previous version is migrated automatically so older expenses receive internal IDs and remain editable.
 
 ## New: Excel construction schedule sync
 

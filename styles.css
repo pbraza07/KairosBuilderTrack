@@ -139,3 +139,36 @@ a{color:inherit}
 @media(max-width:560px){
   .import-preview-stats{grid-template-columns:1fr 1fr}.schedule-import-box{padding:12px}.schedule-import-actions .btn{flex:1}.schedule-source{flex-wrap:wrap}
 }
+
+/* Admin full editing controls */
+.admin-subsection{border-top:1px solid var(--line);margin-top:4px}
+.admin-subsection .card-head{background:#fbfcfb}
+.action-group{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.icon-action{width:32px;height:32px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--forest);display:inline-grid;place-items:center;cursor:pointer;transition:.16s}
+.icon-action:hover{background:#eef4f1;border-color:#c7d8d0;transform:translateY(-1px)}
+.icon-action.danger{color:#a23b3b}
+.icon-action.danger:hover{background:#fbecec;border-color:#efcaca}
+.icon-action svg{width:15px;height:15px}
+.icon-action.light{background:rgba(255,255,255,.92);border-color:rgba(255,255,255,.65);box-shadow:0 3px 12px rgba(0,0,0,.15)}
+.photo-admin-actions{position:absolute;right:9px;top:9px;display:flex;gap:6px;z-index:3}
+.table-thumb{width:68px;height:46px;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block;background:#f1f3f2}
+.wrap-cell{white-space:normal!important;min-width:160px;max-width:300px;line-height:1.45}
+.table-progress-label,.mini-progress{font-size:10px;color:var(--muted);font-weight:700}
+.table-progress-label{display:block;margin-top:5px}
+.modal-photo-preview{width:100%;max-height:300px;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:#f2f4f3}
+.project-check-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:4px 0 8px}
+.project-check{display:flex;align-items:flex-start;gap:9px;border:1px solid var(--line);border-radius:11px;padding:10px;background:#fbfcfb;cursor:pointer}
+.project-check input{margin-top:3px}
+.project-check span{min-width:0}
+.project-check strong{display:block;font-size:12px}
+.project-check small{display:block;color:var(--muted);font-size:10px;margin-top:2px;white-space:normal}
+.admin-section .card-head{align-items:center}
+.admin-section .table td:last-child,.admin-subsection .table td:last-child{width:86px}
+
+@media(max-width:820px){
+  .project-check-grid{grid-template-columns:1fr}
+  .admin-subsection .card-head{align-items:flex-start;gap:10px;flex-direction:column}
+  .admin-subsection .card-head .btn{width:100%;justify-content:center}
+}
+.btn-danger-soft{background:#fff5f5;border:1px solid #efcdcd;color:#a23b3b}
+.btn-danger-soft:hover{background:#fbeaea;border-color:#e7b9b9}
