@@ -1,6 +1,6 @@
-# Kairos Legacy Homes — Investor Project Portal v2.0
+# Kairos Legacy Homes — Investor Project Portal v2.1
 
-## v2.0 — Complete bilingual display coverage
+## v2.1 — Complete bilingual display coverage
 
 This release expands the English / Brazilian Portuguese language switcher across the full portal. In Portuguese mode, navigation, dashboards, schedule labels, Gantt/list views, admin tables, Excel synchronization messages, investment/budget helper text, approvals/history, and the standard construction phase names from the Kairos Excel schedule are translated for display.
 
@@ -160,3 +160,10 @@ Default optimization policy:
 Older photos remain compatible. Replacing a legacy photo through Edit will automatically optimize the replacement.
 
 > For a very large production photo archive (thousands of images), object storage such as S3/R2/Supabase Storage is still preferable to storing image payloads inside the portal database. This version substantially reduces the footprint of the current shared-storage architecture.
+
+## v2.1 schedule visualization
+- Added a category color legend to the Gantt schedule.
+- Added Monthly and Weekly schedule views.
+- Monthly columns are weighted by the number of days in each month so day-level bar placement aligns more closely with calendar dates.
+- Weekly view uses Monday-Sunday blocks and displays ISO week numbers.
+- Phase bars retain category colors and precise day-based start/end positioning.

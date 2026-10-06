@@ -66,6 +66,14 @@ const PT_UI = Object.freeze({
   'Import Excel':'Importar Excel',
   'Gantt':'Gantt',
   'List':'Lista',
+  'Monthly':'Mensal',
+  'Weekly':'Semanal',
+  'Schedule view':'Visualização do cronograma',
+  'Category color legend':'Legenda de cores das categorias',
+  'Current phase':'Fase atual',
+  'Completed phase':'Fase concluída',
+  'Upcoming phase':'Fase futura',
+  'Past-due phase':'Fase atrasada',
   'No dated construction phases yet. Import a project schedule or add phases manually.':'Ainda não há fases de construção com datas. Importe um cronograma do projeto ou adicione as fases manualmente.',
   'Phases are automatically grouped by their broader construction scope. Admins can change the category on any individual phase.':'As fases são agrupadas automaticamente conforme o escopo mais amplo da construção. O administrador pode alterar a categoria de qualquer fase individualmente.',
   'Phase / trade':'Fase / especialidade',
@@ -723,6 +731,10 @@ function categoryThemeStyle(category=''){
   const theme=categoryTheme(category);
   return `--cat-solid:${theme.solid};--cat-soft:${theme.soft};--cat-line:${theme.line};--cat-accent:${theme.accent};`;
 }
+function categoryChipStyle(category=''){
+  const theme=categoryTheme(category);
+  return `background:${theme.soft};border-color:${theme.line};color:${theme.accent};`;
+}
 
 function phaseSearchText(name='',code=''){
   return `${code} ${name}`.toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' ').trim();
@@ -806,6 +818,7 @@ let sharedSyncChain = Promise.resolve();
 let currentView = 'overview';
 let selectedProjectId = null;
 let scheduleMode = 'gantt';
+let ganttScale = 'month';
 
 function deepClone(x){ return JSON.parse(JSON.stringify(x)); }
 function normalizeState(raw){
@@ -1145,13 +1158,14 @@ function overviewTemplate(p){
 }
 
 function phaseRow(t,i){
-  return `<div class="phase-row"><div class="phase-num">${escapeHtml(t.code||String(i+1).padStart(2,'0'))}</div><div class="phase-title"><strong>${escapeHtml(localizedPhaseName(t.name))}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)}</span><em class="phase-category-chip">${escapeHtml(taskCategory(t))}</em></div><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><div class="phase-status ${taskStatusClass(t)}">${taskStatusLabel(t)}</div></div>`;
+  return `<div class="phase-row"><div class="phase-num">${escapeHtml(t.code||String(i+1).padStart(2,'0'))}</div><div class="phase-title"><strong>${escapeHtml(localizedPhaseName(t.name))}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)}</span><em class="phase-category-chip" style="${categoryChipStyle(taskCategory(t))}">${escapeHtml(taskCategory(t))}</em></div><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><div class="phase-status ${taskStatusClass(t)}">${taskStatusLabel(t)}</div></div>`;
 }
 
 function scheduleTemplate(p){
   const admin=currentUser().role==='admin';
   const src=p.scheduleSource;
-  return `<div class="page-head"><div><h1>Construction schedule</h1><p>Follow every construction phase and planned work from start through turnover.</p>${src?`<div class="schedule-source"><span>${svgIcon('file')}</span><span>${currentLanguage==='pt'?`Última sincronização com Excel: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} fases`:`Last Excel sync: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} phases`}</span></div>`:''}</div><div class="head-actions">${admin?`<button class="btn btn-soft" id="scheduleAddPhaseBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="scheduleImportBtn">${svgIcon('upload')} Import Excel</button>`:''}<div class="tabs"><button data-smode="gantt" class="${scheduleMode==='gantt'?'active':''}">Gantt</button><button data-smode="list" class="${scheduleMode==='list'?'active':''}">List</button></div></div></div><div class="card">${scheduleMode==='gantt'?ganttTemplate(p):listScheduleTemplate(p)}</div>`;
+  const scaleToggle=scheduleMode==='gantt'?`<div class="schedule-scale-wrap"><span>Schedule view</span><div class="tabs scale-tabs"><button data-gscale="month" class="${ganttScale==='month'?'active':''}">Monthly</button><button data-gscale="week" class="${ganttScale==='week'?'active':''}">Weekly</button></div></div>`:'';
+  return `<div class="page-head"><div><h1>Construction schedule</h1><p>Follow every construction phase and planned work from start through turnover.</p>${src?`<div class="schedule-source"><span>${svgIcon('file')}</span><span>${currentLanguage==='pt'?`Última sincronização com Excel: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} fases`:`Last Excel sync: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} phases`}</span></div>`:''}</div><div class="head-actions">${admin?`<button class="btn btn-soft" id="scheduleAddPhaseBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="scheduleImportBtn">${svgIcon('upload')} Import Excel</button>`:''}<div class="tabs"><button data-smode="gantt" class="${scheduleMode==='gantt'?'active':''}">Gantt</button><button data-smode="list" class="${scheduleMode==='list'?'active':''}">List</button></div>${scaleToggle}</div></div><div class="card">${scheduleMode==='gantt'?ganttTemplate(p):listScheduleTemplate(p)}</div>`;
 }
 function monthStartFromISO(s){ const d=new Date(s+'T12:00:00'); return new Date(d.getFullYear(),d.getMonth(),1); }
 function monthDiff(a,b){ return (b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth()); }
@@ -1179,19 +1193,52 @@ function dayRangeBadge(t){
   const short=(d)=>d.toLocaleDateString(localeCode(),{month:'short',day:'numeric'});
   return `${short(start)} → ${short(end)}`;
 }
+function startOfWeek(d){ const x=new Date(d); const day=x.getDay(); const diff=(day+6)%7; x.setDate(x.getDate()-diff); x.setHours(12,0,0,0); return x; }
+function endOfWeek(d){ const x=startOfWeek(d); x.setDate(x.getDate()+6); return x; }
+function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function isoWeekNumber(d){
+  const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=x.getUTCDay()||7; x.setUTCDate(x.getUTCDate()+4-day);
+  const yearStart=new Date(Date.UTC(x.getUTCFullYear(),0,1));
+  return Math.ceil((((x-yearStart)/86400000)+1)/7);
+}
+function categoryLegend(groups){
+  const items=groups.map(g=>{const th=categoryTheme(g.category);return `<div class="legend-item"><i style="background:${th.solid}"></i><span>${escapeHtml(g.category)}</span></div>`;}).join('');
+  return `<div class="gantt-legend"><div class="legend-title">Category color legend</div><div class="legend-items">${items}</div><div class="legend-status"><span><b class="legend-status-chip current"></b>Current phase</span><span><b class="legend-status-chip done"></b>Completed phase</span><span><b class="legend-status-chip upcoming"></b>Upcoming phase</span><span><b class="legend-status-chip overdue"></b>Past-due phase</span></div></div>`;
+}
 function ganttTemplate(p){
   const dated=p.tasks.filter(t=>t.start&&t.end);
   if(!dated.length) return '<div class="empty">No dated construction phases yet. Import a project schedule or add phases manually.</div>';
-  let first=dated.reduce((a,t)=>monthStartFromISO(t.start)<a?monthStartFromISO(t.start):a,monthStartFromISO(dated[0].start));
-  let last=dated.reduce((a,t)=>monthStartFromISO(t.end)>a?monthStartFromISO(t.end):a,monthStartFromISO(dated[0].end));
-  const monthCount=Math.min(36,Math.max(1,monthDiff(first,last)+1));
-  const months=Array.from({length:monthCount},(_,i)=>addMonth(first,i));
-  const template=`260px repeat(${monthCount},minmax(94px,1fr))`;
-  const minWidth=Math.max(1120,260+monthCount*96);
   const groups=groupedTasks(dated);
-  const rangeStart=new Date(first.getFullYear(),first.getMonth(),1,12,0,0,0);
-  const lastMonth=months[months.length-1];
-  const rangeEnd=monthEndDate(lastMonth);
+  const rawFirst=dated.reduce((a,t)=>dateFromISO(t.start)<a?dateFromISO(t.start):a,dateFromISO(dated[0].start));
+  const rawLast=dated.reduce((a,t)=>dateFromISO(t.end)>a?dateFromISO(t.end):a,dateFromISO(dated[0].end));
+
+  let rangeStart,rangeEnd,headers,unitTemplate,minWidth,unitCount;
+  if(ganttScale==='week'){
+    rangeStart=startOfWeek(rawFirst);
+    rangeEnd=endOfWeek(rawLast);
+    const weekCount=Math.min(104,Math.max(1,Math.ceil((diffDays(rangeStart,rangeEnd)+1)/7)));
+    headers=Array.from({length:weekCount},(_,i)=>{
+      const ws=addDays(rangeStart,i*7),we=addDays(ws,6);
+      const sameMonth=ws.getMonth()===we.getMonth();
+      const label=sameMonth?`${ws.toLocaleDateString(localeCode(),{month:'short'})} ${ws.getDate()}–${we.getDate()}`:`${ws.toLocaleDateString(localeCode(),{month:'short',day:'numeric'})}–${we.toLocaleDateString(localeCode(),{month:'short',day:'numeric'})}`;
+      return {label,small:`W${isoWeekNumber(ws)}`};
+    });
+    unitCount=headers.length;
+    unitTemplate=Array(unitCount).fill('7fr').join(' ');
+    minWidth=Math.max(1280,260+unitCount*84);
+  }else{
+    rangeStart=new Date(rawFirst.getFullYear(),rawFirst.getMonth(),1,12,0,0,0);
+    rangeEnd=monthEndDate(rawLast);
+    const monthCount=Math.min(36,Math.max(1,monthDiff(rangeStart,monthStartFromISO(rawLast.toISOString().slice(0,10)))+1));
+    const months=Array.from({length:monthCount},(_,i)=>addMonth(rangeStart,i));
+    headers=months.map(m=>({label:m.toLocaleDateString(localeCode(),{month:'short',year:'2-digit'}),small:`1–${new Date(m.getFullYear(),m.getMonth()+1,0).getDate()}`,days:new Date(m.getFullYear(),m.getMonth()+1,0).getDate()}));
+    unitCount=headers.length;
+    unitTemplate=headers.map(h=>`${h.days}fr`).join(' ');
+    minWidth=Math.max(1120,260+unitCount*98);
+  }
+
+  const template=`260px ${unitTemplate}`;
   let rowIndex=0;
   const rows=groups.map(group=>{
     const groupStyle=categoryThemeStyle(group.category);
@@ -1201,17 +1248,19 @@ function ganttTemplate(p){
       const placement=ganttPlacement(t.start,t.end,rangeStart,rangeEnd);
       const theme=categoryTheme(taskCategory(t));
       const barStyle=`left:${placement.leftPct}%;width:${placement.widthPct}%;--bar-color:${st==='overdue'?'#c95d5d':theme.solid};--bar-accent:${st==='overdue'?'#a44747':theme.accent};--bar-soft:${st==='overdue'?'#f7e4e4':theme.soft};`;
-      return `<div class="gantt-row" style="grid-template-columns:${template};--months:${monthCount}"><div class="label"><strong>${escapeHtml(t.code||String(i+1))} · ${escapeHtml(localizedPhaseName(t.name))}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)} · ${taskStatusLabel(t)}</span></div><div class="gantt-grid">${Array(monthCount).fill('<i></i>').join('')}</div><div class="gantt-bar-layer"><div class="bar ${st}" style="${barStyle}" title="${attr(localizedPhaseName(t.name))}: ${fmtDate(t.start)} – ${fmtDate(t.end)}"><span class="bar-days">${escapeHtml(dayRangeBadge(t))}</span></div></div></div>`;
+      return `<div class="gantt-row" style="grid-template-columns:${template};--months:${unitCount}"><div class="label"><strong>${escapeHtml(t.code||String(i+1))} · ${escapeHtml(localizedPhaseName(t.name))}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)} · ${taskStatusLabel(t)}</span></div><div class="gantt-grid" style="grid-template-columns:${unitTemplate}">${Array(unitCount).fill('<i></i>').join('')}</div><div class="gantt-bar-layer"><div class="bar ${st}" style="${barStyle}" title="${attr(localizedPhaseName(t.name))}: ${fmtDate(t.start)} – ${fmtDate(t.end)}"><span class="bar-days">${escapeHtml(dayRangeBadge(t))}</span></div></div></div>`;
     }).join('');
     return `<div class="gantt-category-row" style="grid-template-columns:${template};${groupStyle}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} ${currentLanguage==='pt'?(group.items.length===1?'fase':'fases'):(group.items.length===1?'phase':'phases')}</span></div><div class="gantt-category-line"></div></div>${groupRows}`;
   }).join('');
-  return `<div class="schedule-category-summary"><strong>${groups.length} construction categories</strong><span>Phases are automatically grouped by their broader construction scope. Admins can change the category on any individual phase.</span></div><div class="timeline"><div class="gantt" style="min-width:${minWidth}px"><div class="gantt-head" style="grid-template-columns:${template}"><div>Phase / trade</div>${months.map(m=>`<div>${m.toLocaleDateString(localeCode(),{month:'short',year:'2-digit'})}<small>1–${new Date(m.getFullYear(),m.getMonth()+1,0).getDate()}</small></div>`).join('')}</div>${rows}</div></div>`;
+  const head=headers.map(h=>`<div>${h.label}<small>${h.small}</small></div>`).join('');
+  return `<div class="schedule-category-summary"><strong>${groups.length} construction categories</strong><span>Phases are automatically grouped by their broader construction scope. Admins can change the category on any individual phase.</span></div>${categoryLegend(groups)}<div class="timeline"><div class="gantt ${ganttScale==='week'?'gantt-weekly':'gantt-monthly'}" style="min-width:${minWidth}px"><div class="gantt-head" style="grid-template-columns:${template}"><div>Phase / trade</div>${head}</div>${rows}</div></div>`;
 }
+
 function listScheduleTemplate(p){
   const admin=currentUser().role==='admin';
   const groups=groupedTasks(p.tasks);
   const colspan=admin?8:7;
-  const body=groups.map(group=>`<tr class="schedule-category-row"><td colspan="${colspan}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} ${currentLanguage==='pt'?(group.items.length===1?'fase':'fases'):(group.items.length===1?'phase':'phases')}</span></div></td></tr>${group.items.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong><span class="category-inline">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${Number(t.duration)||daysBetweenInclusive(t.start,t.end)}</td><td style="min-width:150px"><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><span class="table-progress-label">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td>${admin?`<td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')}`).join('');
+  const body=groups.map(group=>`<tr class="schedule-category-row" style="${categoryThemeStyle(group.category)}"><td colspan="${colspan}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} ${currentLanguage==='pt'?(group.items.length===1?'fase':'fases'):(group.items.length===1?'phase':'phases')}</span></div></td></tr>${group.items.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong><span class="category-inline" style="${categoryChipStyle(taskCategory(t))}">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${Number(t.duration)||daysBetweenInclusive(t.start,t.end)}</td><td style="min-width:150px"><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><span class="table-progress-label">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td>${admin?`<td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')}`).join('');
   return `<div class="schedule-category-summary"><strong>${groups.length} construction categories</strong><span>Phases are automatically grouped into the broader category that best matches the work.</span></div><div class="table-wrap"><table class="table schedule-table"><thead><tr><th>Code</th><th>Phase</th><th>Start</th><th>Finish</th><th>Days</th><th>Progress</th><th>Status</th>${admin?'<th>Actions</th>':''}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
@@ -1263,7 +1312,7 @@ function adminEditorTemplate(p){
   </div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project phases</h3><span class="muted">${p.tasks.length} schedule items · each phase is assigned to a broader construction category</span></div><button class="btn btn-soft" id="addTaskBtn2">${svgIcon('plus')} Add phase</button></div>
-  <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Dates</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead><tbody>${groupedTasks(p.tasks).flatMap(g=>g.items).map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong></td><td><span class="category-admin-chip">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)} → ${fmtDate(t.end)}</td><td><span class="mini-progress">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td><td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit construction phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit phase</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="7" class="muted">No construction phases yet.</td></tr>'}</tbody></table></div></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Dates</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead><tbody>${groupedTasks(p.tasks).flatMap(g=>g.items).map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong></td><td><span class="category-admin-chip" style="${categoryChipStyle(taskCategory(t))}">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)} → ${fmtDate(t.end)}</td><td><span class="mini-progress">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td><td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit construction phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit phase</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="7" class="muted">No construction phases yet.</td></tr>'}</tbody></table></div></div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project photos</h3><span class="muted">${p.photos.length} uploaded photos · edit title, date, phase, or replace the image</span></div><button class="btn btn-soft" id="adminAddPhotoBtn2">${svgIcon('plus')} Add photo</button></div>
   <div class="table-wrap"><table class="table"><thead><tr><th>Photo</th><th>Title</th><th>Phase</th><th>Date</th><th>Storage</th><th>Actions</th></tr></thead><tbody>${p.photos.slice().reverse().map(ph=>`<tr><td><img class="table-thumb clickable-thumb" data-photo-open="${ph.id}" src="${ph.url}" alt="${attr(ph.title||'Project photo')}"></td><td><strong>${escapeHtml(localizedPhaseName(ph.title))}</strong></td><td>${escapeHtml(ph.phase?localizedPhotoPhase(ph.phase):'—')}</td><td>${fmtDate(ph.date)}</td><td><span class="storage-size">${ph.optimizedBytes?humanBytes(ph.optimizedBytes):'Legacy image'}</span></td><td><div class="action-group"><button class="icon-action" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="muted">No photos uploaded yet.</td></tr>'}</tbody></table></div></div>
@@ -1274,6 +1323,7 @@ function adminEditorTemplate(p){
 function bindView(){
   document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>{currentView=b.dataset.goto;render();});
   document.querySelectorAll('[data-smode]').forEach(b=>b.onclick=()=>{scheduleMode=b.dataset.smode;renderView();});
+  document.querySelectorAll('[data-gscale]').forEach(b=>b.onclick=()=>{ganttScale=b.dataset.gscale;renderView();});
   const addPhoto=document.getElementById('addPhotoBtn'); if(addPhoto)addPhoto.onclick=()=>openPhotoModal();
   const si=document.getElementById('scheduleImportBtn'); if(si)si.onclick=openScheduleImportModal;
   const sap=document.getElementById('scheduleAddPhaseBtn'); if(sap)sap.onclick=()=>openTaskModal();
@@ -1537,7 +1587,7 @@ function importPreviewHtml(parsed){
   const sample=parsed.tasks.slice(0,8);
   return `<div class="import-preview-stats"><div><strong>${st.rows}</strong><span>phases found</span></div><div><strong>${st.complete}</strong><span>marked complete</span></div><div><strong>${st.completion}%</strong><span>schedule completion</span></div><div><strong>${fmtDate(st.start)}</strong><span>first phase</span></div><div><strong>${fmtDate(st.end)}</strong><span>last phase</span></div></div>
   ${parsed.skipped?`<div class="import-warning">${parsed.skipped} row${parsed.skipped===1?' was':'s were'} skipped because a valid Start and End date could not be determined.</div>`:''}
-  <div class="table-wrap import-preview-table"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Start</th><th>End</th><th>Days</th><th>Status</th></tr></thead><tbody>${sample.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong></td><td><span class="category-inline">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${t.duration}</td><td>${taskStatusLabel(t)}</td></tr>`).join('')}</tbody></table></div>${parsed.tasks.length>sample.length?`<div class="muted import-more">Previewing 8 of ${parsed.tasks.length} phases.</div>`:''}`;
+  <div class="table-wrap import-preview-table"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Start</th><th>End</th><th>Days</th><th>Status</th></tr></thead><tbody>${sample.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong></td><td><span class="category-inline" style="${categoryChipStyle(taskCategory(t))}">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${t.duration}</td><td>${taskStatusLabel(t)}</td></tr>`).join('')}</tbody></table></div>${parsed.tasks.length>sample.length?`<div class="muted import-more">Previewing 8 of ${parsed.tasks.length} phases.</div>`:''}`;
 }
 function openScheduleImportModal(){
   const p=currentProject(); if(!p)return;
