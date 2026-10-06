@@ -1,31 +1,41 @@
-# Kairos v1.10 — Buildertrend capture foundation
+# Kairos v1.11 — installation and first refresh
 
-This release adds an administrator Refresh from Buildertrend button, a durable job queue, a local Playwright worker, capture status, and JSON capture download. It does NOT yet update Kairos schedules, financials, photos, or accounts. All-data scraping cannot be claimed until your signed-in pages, pagination, attachments and field mappings have been verified. A successful job is labeled captured, not synchronized. Existing Kairos records remain intact.
+## What this release fixes
 
-## Setup on Render and your computer
+The configured five-page adapter replaces the empty pages.json from v1.10. It reads summary finances, paginated/virtualized schedule rows, Daily Logs photo-folder metadata/previews, daily logs, and the Invoices tab. It stores the results separately from manual Kairos project records and displays them in Admin Center → Buildertrend → View imported data. Contract price is not substituted for Kairos construction budget. Invoice balances are separate from contract balances. No accounts, approvals or manual records are deleted or overwritten.
 
-1. Deploy this portal release using your existing Render service and DATABASE_URL. Keep your existing database. Do not reset it.
-2. Generate a random worker token, for example with `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Set BUILDERTREND_WORKER_TOKEN in the Render service's Environment. This is a dedicated sync secret, not your Buildertrend password.
-3. On your Windows computer install Python 3.11 or later. Open PowerShell in the extracted portal folder.
-4. Run `python -m venv .venv`, then `.\.venv\Scripts\Activate.ps1`, then `pip install -r buildertrend/requirements.txt`, then `python -m playwright install chromium`.
-5. Run `python buildertrend/worker.py --login`. Sign in directly in the opened Buildertrend browser using your personal credentials, complete MFA, open the Summary, then press Enter in PowerShell. Login state stays in buildertrend/.private-profile on this computer. Protect this folder like a password; never upload it or commit it.
-6. Configure buildertrend/pages.json with each explicit project/section URL, a verified ready_selector unique to the signed-in page, and content_selector selecting the data containers. Example shape (selectors must be obtained from your actual page):
+The current project is 6020 SW 127th Ave Rd, observed source job ID 45571488. Future project data can be stored separately by ID, but automatic project discovery/switching is NOT implemented. The worker refuses configurations with multiple projects until switching is verified. Active Buildertrend filters apply. Credit memos, deposits, other photo folders, original photos, file attachments and comments inside details are not included. Preview links may require a Buildertrend login. This release does not claim all-account completeness.
 
-   [{"name":"project-6020-summary","url":"https://buildertrend.net/app/Owner/Summary","ready_selector":"REPLACE_WITH_VERIFIED_SIGNED_IN_SELECTOR","content_selector":"REPLACE_WITH_VERIFIED_DATA_SELECTOR"}]
+## Upgrade — Windows and Render
 
-   The shipped list is intentionally empty; no Buildertrend selectors or project IDs have been invented. Ensure each URL opens the correct project independently. Do not rely on an implicit last-selected project. Capture covers visible containers only. Virtualized tables, pagination, photos, documents and hidden details need separate verified adapters.
-7. Set the same token locally in PowerShell: `$env:BUILDERTREND_WORKER_TOKEN = 'YOUR_GENERATED_TOKEN'` and `$env:KAIROS_PORTAL_URL = 'https://YOUR-EXISTING-PORTAL.onrender.com'`. Keep secrets out of screenshots, source files and chat.
-8. Run `python buildertrend/worker.py`. Keep the computer awake and worker running. Sign into Kairos as administrator, open Admin Center and click Refresh from Buildertrend. Click Check status for updates and Download capture to inspect the result.
-9. If the session expires, stop the worker, repeat step 5 and restart. The worker does not bypass MFA/CAPTCHA and does not click submit/edit controls in Buildertrend. It navigates configured pages and reads visible text only.
+1. Stop your worker with Ctrl+C. Extract this ZIP to a new folder.
+2. Upload the application files to the same GitHub repository that backs your existing Render service. Keep your current DATABASE_URL and database. Deploy the latest commit. Do not upload .venv, data, or buildertrend/.private-profile.
+3. Keep your newly rotated BUILDERTREND_WORKER_TOKEN set in Render. Use the same new key locally. Do not reuse the key exposed in the screenshot.
+4. Open PowerShell in the new folder containing server.js and buildertrend. Run these commands separately:
 
-## Completing full synchronization
+   python -m venv .venv
+   .\.venv\Scripts\python.exe -m pip install -r .\buildertrend\requirements.txt
+   .\.venv\Scripts\python.exe -m playwright install chromium
 
-For each accessible project and module, verify stable source IDs, pagination and completeness. Define explicit source-to-Kairos project mappings and typed mappings for task dates/progress, budgets and photos. Preview differences before enabling imports. Use source IDs for idempotent updates, preserve Kairos client approvals and local edits, and never delete records because a scrape omitted them. Do not infer spent amounts from text or assign clients by name alone. Server-side database access belonging to Buildertrend is not available through this worker.
+5. Run .\.venv\Scripts\python.exe .\buildertrend\worker.py --login. Sign in directly in the opened browser, complete MFA and select 6020 SW 127th Ave Rd. Open its Summary page, then return to PowerShell and press Enter. Credentials are entered in Buildertrend, not Kairos. You may alternatively move your existing private profile after stopping the old worker, but logging in fresh is simpler.
+6. Set the connection values in PowerShell:
 
-To finish this adapter, provide the accessible section names and redacted screenshots/export samples of their fields, including pagination and project selector. A supervised signed-in inspection can identify selectors. Do not send your password.
+   $env:BUILDERTREND_WORKER_TOKEN = 'YOUR_NEW_KEY'
+   $env:KAIROS_PORTAL_URL = 'https://kairosbuildertrack.onrender.com'
 
-## Operational limits
+7. Start .\.venv\Scripts\python.exe .\buildertrend\worker.py
+8. In Kairos, sign in as administrator. Open Admin Center → Buildertrend → Refresh from Buildertrend. Keep the computer awake and PowerShell open. The worker prints the section it is collecting.
+9. Click Check status. Once captured, click View imported data. Expand the finances, schedule, invoices, daily logs and photos sections.
+10. Verify the schedule count against the live Buildertrend count (your sample showed 112), and check financial amounts, log counts and photo counts. Photos show preview links; original files are not downloaded. Captured means the configured collection succeeded, not that every feature in Buildertrend was imported.
 
-One worker is supported. Jobs are reclaimed after a 10-minute lease; old completions are rejected. Capture is capped at 5 MB and keeps the previous successful snapshot on failure. This is an on-demand capture queue, not a recurring scheduler. No network response harvesting is enabled. The browser session on your computer is independent of a normal Chrome login and independent of Render. Only administrators may request or download captures; the worker token can only claim and finish sync jobs. Rotate the token to revoke the worker.
+## If a refresh fails
 
-Verified locally: JavaScript/Python syntax and job endpoint behavior. Live Buildertrend extraction has not been tested against your account.
+The last successful capture is preserved. Read the worker's local message. Wrong project selected: repeat --login and select the configured project. Sign-in expired: repeat --login. Incomplete schedule: verify filters and pagination, retry after the source stops changing, then send the non-secret error if it continues. Missing locator or timeout: send the section name and updated page markup. Worker request failed: verify the Render deployment, website URL and matching worker tokens. A crashed running job is eligible for recovery after ten minutes.
+
+## Security and operating behavior
+
+The private browser profile lives inside buildertrend/.private-profile and contains sensitive session cookies. Do not upload, share, or commit it. Prefer a local folder outside OneDrive for the worker/profile. The worker only navigates pages, scrolls and clicks schedule paging controls; it never approves, pays, edits or deletes Buildertrend records. No MFA/CAPTCHA bypass. No undocumented API probing. There is one worker and one currently selected project. Captures are admin-only. Run refresh again to collect later changes. There is no recurring timer beyond checking the refresh queue.
+
+## Validation
+
+JavaScript/Python syntax, supplied HTML structures, scrolling accumulation, deduplication and incomplete-count unit checks, and local API permission/validation/persistence checks were run. A live Buildertrend session was not available here. The first live refresh remains necessary to verify page loading and completeness. Do not treat source fixture counts as guarantees of current counts.

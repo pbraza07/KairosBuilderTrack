@@ -1664,7 +1664,7 @@ boot();
 
 function buildertrendPanel(){
  const pt=currentLanguage==='pt';
- return `<div class="card" style="margin-top:18px;padding:24px"><h3>Buildertrend</h3><p>${pt?'Captura somente leitura. Os dados capturados precisam ser mapeados antes de atualizar cronogramas e valores.':'Read-only capture. Captured data needs field mapping before updating schedules and amounts.'}</p><button class="btn btn-primary" id="btRefresh">${pt?'Atualizar do Buildertrend':'Refresh from Buildertrend'}</button> <button class="btn btn-outline" id="btStatus">${pt?'Verificar status':'Check status'}</button> <button class="btn btn-outline" id="btDownload">${pt?'Baixar captura':'Download capture'}</button><p id="btMessage" role="status"></p></div>`;
+ return `<div class="card" style="margin-top:18px;padding:24px"><h3>Buildertrend</h3><p>${pt?'Captura somente leitura. Veja abaixo cronogramas, valores, faturas, diários e prévias de fotos importados.':'Read-only capture. View imported schedules, finances, invoices, logs and photo previews below.'}</p><button class="btn btn-primary" id="btRefresh">${pt?'Atualizar do Buildertrend':'Refresh from Buildertrend'}</button> <button class="btn btn-outline" id="btStatus">${pt?'Verificar status':'Check status'}</button> <button class="btn btn-outline" id="btDownload">${pt?'Baixar captura':'Download capture'}</button><button class="btn btn-outline" id="btInspect">${pt?'Ver dados importados':'View imported data'}</button><p id="btMessage" role="status"></p><div id="btImported"></div></div>`;
 }
 function bindBuildertrend(){
  const refresh=document.getElementById('btRefresh'); if(!refresh)return;
@@ -1672,6 +1672,24 @@ function bindBuildertrend(){
  const show=async()=>{try{const r=await apiJson('/api/buildertrend/status');message.textContent=JSON.stringify(r);}catch(e){message.textContent=e.message;}};
  refresh.onclick=async()=>{refresh.disabled=true;try{await apiJson('/api/buildertrend/refresh',{method:'POST',body:'{}'});await show();}catch(e){message.textContent=e.message;}finally{refresh.disabled=false;}};
  document.getElementById('btStatus').onclick=show;
+ document.getElementById('btInspect').onclick=async()=>{try{const r=await apiJson('/api/buildertrend/snapshot');document.getElementById('btImported').innerHTML=buildertrendImported(r);}catch(e){message.textContent=e.message;}};
  document.getElementById('btDownload').onclick=async()=>{try{const r=await apiJson('/api/buildertrend/snapshot');const u=URL.createObjectURL(new Blob([JSON.stringify(r,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='buildertrend-capture.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}catch(e){message.textContent=e.message;}};
  show();
+}
+
+function buildertrendImported(snapshot){
+ const pt=currentLanguage==='pt', esc=escapeHtml;
+ if(snapshot.schemaVersion!==2)return `<p>${pt?'Execute uma atualização com o worker v1.11.':'Run a refresh with the v1.11 worker.'}</p>`;
+ const table=rows=>`<div class="table-wrap"><table class="table"><tbody>${rows.map(row=>`<tr>${row.map(v=>`<td>${esc(String(v??''))}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+ return Object.values(snapshot.projects||{}).map(p=>{
+ const sections=p.sections||{}, f=sections.summary?.fields||{};
+ const labels=pt?['Preço revisado','Preço original','Imposto','Total pago','Saldo do contrato','Próximo pagamento']:['Revised price','Original price','Tax','Total paid','Remaining contract balance','Next payment'];
+ const amounts=[f.revisedPrice,f.originalPrice,f.tax,f.totalPaid,f.remainingToPay];
+ const summary=table(labels.map((label,i)=>[label,i<5?money(amounts[i]):f.nextPaymentText]));
+ const schedule=table([[pt?'Título':'Title',pt?'Concluído':'Complete',pt?'Duração':'Duration',pt?'Início':'Start',pt?'Fim':'End'],...(sections.schedule?.records||[]).map(x=>[x.title,x.completed===null?'—':x.completed?(pt?'Sim':'Yes'):(pt?'Não':'No'),x.duration,x.startDate,x.endDate])]);
+ const invoices=table([['ID',pt?'Título':'Title',pt?'Status':'Status',pt?'Valor':'Amount',pt?'Pago':'Paid',pt?'Saldo da fatura':'Invoice balance',pt?'Vencimento':'Due'],...(sections.invoices?.records||[]).map(x=>[x.customId,x.title,x.paymentStatus,x.invoiceAmount,x.amountPaid,x.invoiceBalance,x.deadline])]);
+ const logs=table([[pt?'Data':'Date',pt?'Autor':'Author',pt?'Notas':'Notes'],...(sections.dailyLogs?.records||[]).map(x=>[x.dateLabel,x.author,x.notes])]);
+ const photos=(sections.photos?.records||[]).map(x=>{let href='';try{const u=new URL(x.previewUrl);if(u.protocol==='https:'&&u.hostname==='buildertrend.net')href=u.href;}catch{}return `<div style="padding:8px"><strong>${esc(x.name)}</strong><p>${esc(x.details)}</p>${href?`<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${pt?'Abrir prévia no Buildertrend':'Open preview in Buildertrend'}</a>`:''}</div>`;}).join('');
+ return `<section style="margin-top:20px"><h3>${esc(p.name)} · Buildertrend ${esc(p.sourceId)}</h3><p>${pt?'Dados importados separados dos registros manuais do Kairos. Filtros ativos no Buildertrend podem limitar os resultados.':'Imported data is displayed alongside your manual Kairos records. Active Buildertrend filters may limit results.'}</p>${[['summary',pt?'Finanças':'Finances',summary],['schedule',pt?'Cronograma':'Schedule',schedule],['invoices',pt?'Faturas':'Invoices',invoices],['dailyLogs',pt?'Diários':'Daily logs',logs],['photos',pt?'Prévias de fotos':'Photo previews',photos]].map(([key,label,html])=>`<details style="margin:12px 0"><summary>${label}${sections[key]?.records?' ('+sections[key].records.length+')':''}</summary><p>${esc(sections[key]?.coverage||'')}</p>${html}</details>`).join('')}</section>`;
+ }).join('');
 }

@@ -446,6 +446,17 @@ async function handleApi(req, res, pathname) {
       if (body.error) {bt.status='failed'; bt.error='Sync failed. Check the local worker and sign in again if required.';}
       else {
         if (!body.sections || typeof body.sections !== 'object' || Array.isArray(body.sections) || !Object.keys(body.sections).length || Buffer.byteLength(JSON.stringify(body.sections))>5000000) return sendJson(res,400,{error:'Invalid or oversized capture'});
+        if (body.sections.schemaVersion === 2) {
+          const projects=body.sections.projects;
+          if (!projects || typeof projects !== 'object' || Array.isArray(projects) || !Object.keys(projects).length) return sendJson(res,400,{error:'Missing projects'});
+          for (const [id, project] of Object.entries(projects)) {
+            if (!/^\d+$/.test(id) || project.sourceId !== id || typeof project.name !== 'string' || !project.sections || !['summary','schedule','photos','dailyLogs','invoices'].every(key=>project.sections[key])) return sendJson(res,400,{error:'Invalid project capture'});
+            const tasks=project.sections.schedule;
+            if (!Array.isArray(tasks.records) || tasks.records.length!==tasks.expectedCount || new Set(tasks.records.map(x=>x.sourceId)).size!==tasks.records.length) return sendJson(res,400,{error:'Incomplete schedule'});
+          }
+          const previous=bt.snapshots?.schemaVersion===2?bt.snapshots.projects:{};
+          body.sections.projects={...previous,...projects};
+        }
         bt.snapshots=body.sections; bt.lastSuccess=new Date().toISOString(); bt.status='captured'; bt.error=null;
       }
       await persistShared('buildertrend-result'); return sendJson(res,200,{status:bt.status});
@@ -691,7 +702,7 @@ async function start() {
     const pathname = decodeURIComponent(parsed.pathname || '/');
 
     if (pathname === '/health' || pathname === '/healthz') {
-      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '1.10.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
+      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '1.11.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
     }
 
     if (pathname.startsWith('/api/')) {

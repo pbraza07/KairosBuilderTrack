@@ -4,6 +4,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 from playwright.sync_api import sync_playwright
+from adapters import capture
 
 BASE = Path(__file__).resolve().parent
 PROFILE = BASE / '.private-profile'
@@ -47,24 +48,18 @@ def main():
                 job = api('claim', {}).get('job')
                 if job:
                     try:
-                        sections = {}
+                        projects = json.loads((BASE / 'projects.json').read_text())
+                        if len(projects) != 1:
+                            raise RuntimeError('Automatic project switching is not verified. Configure one selected project per worker.')
+                        project=projects[0]
+                        sections = {'capturedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),'schemaVersion':2,'projects':{project['sourceId']:{'sourceId':project['sourceId'],'name':project['name'],'sections':{}}}}
                         for section in config:
-                            page.goto(section['url'], wait_until='domcontentloaded', timeout=45000)
-                            if not allowed(page.url) or 'login' in page.url.lower():
-                                raise RuntimeError('Session expired')
-                            page.locator(section['ready_selector']).wait_for(state='visible', timeout=20000)
-                            if page.locator('input[type=password]').count():
-                                raise RuntimeError('Sign-in required')
-                            # Capture only explicitly configured visible containers.
-                            container = page.locator(section['content_selector'])
-                            container.first.wait_for(state='visible', timeout=15000)
-                            content = container.all_inner_texts()
-                            if not any(x.strip() for x in content):
-                                raise RuntimeError('Empty capture')
-                            sections[section['name']] = {'url':section['url'], 'capturedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'visibleText':content, 'coverage':'Configured visible containers only; pagination and attachments not included.'}
+                            print('Collecting '+section['name']+'...')
+                            sections['projects'][project['sourceId']]['sections'][section['name']]=capture(page,section,project)
                         api('result', {'job':job, 'sections':sections})
-                        print('Capture saved. Field mapping is still required for operational data updates.')
-                    except Exception:
+                        print('Buildertrend data saved. Open the imported-data view in Kairos.')
+                    except Exception as exc:
+                        print(str(exc))
                         api('result', {'job':job, 'error':True})
                         print('Capture failed; previous capture preserved. Verify selectors and session.')
             except Exception:
