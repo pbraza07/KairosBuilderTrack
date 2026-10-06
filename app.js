@@ -73,6 +73,8 @@ const PT_UI = Object.freeze({
   'Current phase':'Fase atual',
   'Completed phase':'Fase concluída',
   'Upcoming phase':'Fase futura',
+  'Next phase':'Próxima fase',
+  'Other upcoming phases use category color':'Outras fases futuras usam a cor da categoria',
   'Past-due phase':'Fase atrasada',
   'No dated construction phases yet. Import a project schedule or add phases manually.':'Ainda não há fases de construção com datas. Importe um cronograma do projeto ou adicione as fases manualmente.',
   'Phases are automatically grouped by their broader construction scope. Admins can change the category on any individual phase.':'As fases são agrupadas automaticamente conforme o escopo mais amplo da construção. O administrador pode alterar a categoria de qualquer fase individualmente.',
@@ -1211,12 +1213,22 @@ function isoWeekNumber(d){
 }
 function categoryLegend(groups){
   const items=groups.map(g=>{const th=categoryTheme(g.category);return `<div class="legend-item"><i style="background:${th.solid}"></i><span>${escapeHtml(g.category)}</span></div>`;}).join('');
-  return `<div class="gantt-legend"><div class="legend-title">Category color legend</div><div class="legend-items">${items}</div><div class="legend-status"><span><b class="legend-status-chip done"></b>Completed phase</span><span><b class="legend-status-chip current"></b>Current phase</span><span><b class="legend-status-chip overdue"></b>Past-due phase</span><span><b class="legend-status-chip upcoming"></b>Upcoming phase</span></div></div>`;
+  return `<div class="gantt-legend"><div class="legend-title">Category color legend</div><div class="legend-items">${items}</div><div class="legend-status"><span><b class="legend-status-chip done"></b>Completed phase</span><span><b class="legend-status-chip current"></b>Current phase</span><span><b class="legend-status-chip overdue"></b>Past-due phase</span><span><b class="legend-status-chip next"></b>Next phase</span><span class="legend-category-note">Other upcoming phases use category color</span></div></div>`;
+}
+function nextPhaseAfterCurrentId(tasks=[]){
+  const ordered=tasks.slice().sort((a,b)=>(a.start||'9999').localeCompare(b.start||'9999') || (a.end||'9999').localeCompare(b.end||'9999') || String(a.code||'').localeCompare(String(b.code||'')));
+  const currentIndexes=[];
+  ordered.forEach((t,i)=>{ if(taskStatus(t)==='current') currentIndexes.push(i); });
+  if(!currentIndexes.length) return null;
+  const lastCurrentIndex=Math.max(...currentIndexes);
+  const next=ordered.slice(lastCurrentIndex+1).find(t=>taskStatus(t)==='upcoming');
+  return next?.id || null;
 }
 function ganttTemplate(p){
   const dated=p.tasks.filter(t=>t.start&&t.end);
   if(!dated.length) return '<div class="empty">No dated construction phases yet. Import a project schedule or add phases manually.</div>';
   const groups=groupedTasks(dated);
+  const nextPhaseId=nextPhaseAfterCurrentId(dated);
   const rawFirst=dated.reduce((a,t)=>dateFromISO(t.start)<a?dateFromISO(t.start):a,dateFromISO(dated[0].start));
   const rawLast=dated.reduce((a,t)=>dateFromISO(t.end)>a?dateFromISO(t.end):a,dateFromISO(dated[0].end));
 
@@ -1252,11 +1264,14 @@ function ganttTemplate(p){
     const groupRows=group.items.map(t=>{
       const i=rowIndex++;
       const st=taskStatus(t);
+      const isNextPhase=st==='upcoming' && t.id===nextPhaseId;
       const placement=ganttPlacement(t.start,t.end,rangeStart,rangeEnd);
       const duration=phaseDurationDays(t);
       const label=placement.widthPct>=4.2?phaseDurationLabel(t):phaseDurationCompact(t);
-      const barStyle=`left:${placement.leftPct}%;width:${placement.widthPct}%;`;
-      return `<div class="gantt-row" style="grid-template-columns:${template};--months:${unitCount}"><div class="label"><strong>${escapeHtml(t.code||String(i+1))} · ${escapeHtml(localizedPhaseName(t.name))}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)} · ${taskStatusLabel(t)}</span></div><div class="gantt-grid" style="grid-template-columns:${unitTemplate}">${Array(unitCount).fill('<i></i>').join('')}</div><div class="gantt-bar-layer"><div class="bar ${st}" style="${barStyle}" title="${attr(localizedPhaseName(t.name))}: ${fmtDate(t.start)} – ${fmtDate(t.end)} · ${attr(phaseDurationLabel(t))}"><span class="bar-days" aria-label="${attr(phaseDurationLabel(t))}">${escapeHtml(label)}</span></div></div></div>`;
+      const theme=categoryTheme(taskCategory(t));
+      const barStyle=`left:${placement.leftPct}%;width:${placement.widthPct}%;--category-color:${theme.solid};--category-accent:${theme.accent};`;
+      const barClass=`${st}${isNextPhase?' next':''}`;
+      return `<div class="gantt-row" style="grid-template-columns:${template};--months:${unitCount}"><div class="label"><strong>${escapeHtml(t.code||String(i+1))} · ${escapeHtml(localizedPhaseName(t.name))}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)} · ${taskStatusLabel(t)}</span></div><div class="gantt-grid" style="grid-template-columns:${unitTemplate}">${Array(unitCount).fill('<i></i>').join('')}</div><div class="gantt-bar-layer"><div class="bar ${barClass}" style="${barStyle}" title="${attr(localizedPhaseName(t.name))}: ${fmtDate(t.start)} – ${fmtDate(t.end)} · ${attr(phaseDurationLabel(t))}"><span class="bar-days" aria-label="${attr(phaseDurationLabel(t))}">${escapeHtml(label)}</span></div></div></div>`;
     }).join('');
     return `<div class="gantt-category-row" style="grid-template-columns:${template};${groupStyle}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} ${currentLanguage==='pt'?(group.items.length===1?'fase':'fases'):(group.items.length===1?'phase':'phases')}</span></div><div class="gantt-category-line"></div></div>${groupRows}`;
   }).join('');
