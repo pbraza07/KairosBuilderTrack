@@ -853,7 +853,49 @@ async function apiJson(path,options={}){
   if(!res.ok){ const err=new Error(body.error||`Request failed (${res.status})`); err.status=res.status; throw err; }
   return body;
 }
-function saveLocalState(){ localStorage.setItem(STORE_KEY,JSON.stringify(state)); }
+// Browser storage is only a lightweight cache. PostgreSQL/server state is authoritative.
+// Never cache image data URLs locally: even optimized construction photos can quickly exceed
+// the browser's ~5-10 MB localStorage quota and previously caused a successful login to look
+// like it failed with "QuotaExceededError".
+function localCacheSnapshot(source=state,compact=false){
+  const cached=deepClone(source);
+  if(Array.isArray(cached.projects)) cached.projects.forEach(project=>{
+    project.photos=Array.isArray(project.photos)?project.photos.map(photo=>({
+      ...photo,
+      // Remote/object-storage URLs are small enough to cache; base64/blob payloads are not.
+      url:(typeof photo.url==='string' && /^(https?:|\/)/i.test(photo.url))?photo.url:''
+    })):[];
+    // The server retains the full undo snapshot. Avoid duplicating large schedule snapshots in
+    // browser cache when we need the most compact fallback possible.
+    if(compact && project.scheduleBackup) delete project.scheduleBackup;
+  });
+  if(compact){
+    // Notifications/history are fetched from the server immediately after authentication.
+    // Keep only what is useful to render a small fallback cache.
+    cached.projects?.forEach(project=>{
+      if(Array.isArray(project.expenseHistory) && project.expenseHistory.length>80) project.expenseHistory=project.expenseHistory.slice(-80);
+      if(Array.isArray(project.notifications) && project.notifications.length>80) project.notifications=project.notifications.slice(-80);
+    });
+  }
+  return cached;
+}
+function saveLocalState(){
+  try{
+    localStorage.setItem(STORE_KEY,JSON.stringify(localCacheSnapshot(state,false)));
+    return true;
+  }catch(err){
+    // If an older build already filled localStorage with base64 photos, replace that cache with
+    // a smaller copy. A browser-cache failure must never prevent login or a PostgreSQL save.
+    try{
+      localStorage.removeItem(STORE_KEY);
+      localStorage.setItem(STORE_KEY,JSON.stringify(localCacheSnapshot(state,true)));
+      return true;
+    }catch{
+      try{ localStorage.removeItem(STORE_KEY); }catch{}
+      return false;
+    }
+  }
+}
 function saveState(intent={}){
   saveLocalState();
   if(currentUser()?.role!=='admin' || !session?.token) return Promise.resolve({localOnly:true});

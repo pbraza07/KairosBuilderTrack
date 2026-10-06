@@ -1,6 +1,6 @@
-# Kairos Legacy Homes — Investor Project Portal v2.5
+# Kairos Legacy Homes — Investor Project Portal v2.6
 
-## v2.5 — Investor-focused login experience
+## v2.6 — Investor-focused login experience
 
 - Removed all visible demo/access credential information from the login page.
 - Reworked the landing-page message around investor confidence, transparency, capital visibility, approvals, and construction milestones.
@@ -184,3 +184,10 @@ Older photos remain compatible. Replacing a legacy photo through Edit will autom
 
 ## v2.4 Front-page phase window
 The Overview page now shows the 10 phases immediately preceding the active phase, the current phase, and the next upcoming phase, in chronological order. This keeps the dashboard focused on recent work and what happens next instead of always showing the first phases in the project.
+
+
+## v2.6 browser quota fix
+- PostgreSQL/server state remains authoritative.
+- Browser localStorage now keeps only a lightweight cache and never stores base64 construction-photo payloads.
+- If an older browser cache is already full, the app automatically replaces it with a compact cache.
+- A local browser cache quota error can no longer block a successful login or cloud save.
