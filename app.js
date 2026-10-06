@@ -69,8 +69,12 @@ const seed = {
   ]
 };
 
+const hadSavedLocalState = Boolean(localStorage.getItem(STORE_KEY));
 let state = loadState();
 let session = loadSession();
+let sharedSyncPending = false;
+let sharedSyncErrorShown = false;
+let sharedSyncChain = Promise.resolve();
 let currentView = 'overview';
 let selectedProjectId = null;
 let scheduleMode = 'gantt';
@@ -92,7 +96,34 @@ function normalizeState(raw){
   return data;
 }
 function loadState(){ try{ return normalizeState(JSON.parse(localStorage.getItem(STORE_KEY)) || deepClone(seed)); } catch { return normalizeState(deepClone(seed)); } }
-function saveState(){ localStorage.setItem(STORE_KEY,JSON.stringify(state)); }
+function authHeaders(){ return session?.token?{'Authorization':`Bearer ${session.token}`}:{ }; }
+async function apiJson(path,options={}){
+  const headers={'Content-Type':'application/json',...(options.headers||{}),...authHeaders()};
+  const res=await fetch(path,{...options,headers});
+  let body={}; try{ body=await res.json(); }catch{}
+  if(!res.ok){ const err=new Error(body.error||`Request failed (${res.status})`); err.status=res.status; throw err; }
+  return body;
+}
+function saveLocalState(){ localStorage.setItem(STORE_KEY,JSON.stringify(state)); }
+function saveState(){
+  saveLocalState();
+  if(currentUser()?.role!=='admin' || !session?.token) return Promise.resolve({localOnly:true});
+  const snapshot=deepClone(state);
+  sharedSyncPending=true;
+  sharedSyncChain=sharedSyncChain.catch(()=>null).then(()=>apiJson('/api/state',{method:'PUT',body:JSON.stringify({state:snapshot})})).then(result=>{
+    sharedSyncPending=false; sharedSyncErrorShown=false;
+    // Passwords are processed by the server and should not remain in browser storage.
+    state.users.forEach(u=>{ if(Object.prototype.hasOwnProperty.call(u,'password')) delete u.password; });
+    saveLocalState();
+    return result;
+  }).catch(err=>{
+    sharedSyncPending=false;
+    if(err.status===401){ session=null; sessionStorage.removeItem(SESSION_KEY); }
+    if(!sharedSyncErrorShown){ sharedSyncErrorShown=true; setTimeout(()=>toast('Saved on this device, but cloud sync failed. Please check your connection.'),50); }
+    return {error:err.message};
+  });
+  return sharedSyncChain;
+}
 function loadSession(){ try{return JSON.parse(sessionStorage.getItem(SESSION_KEY)) || null}catch{return null} }
 function saveSession(){ sessionStorage.setItem(SESSION_KEY,JSON.stringify(session)); }
 function money(n){ return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0)); }
@@ -150,11 +181,59 @@ function loginTemplate(){ return `<div class="auth-shell">
     <div class="field"><label>Email address</label><input class="input" id="email" type="email" autocomplete="username" placeholder="you@example.com" required></div>
     <div class="field"><label>Password</label><input class="input" id="password" type="password" autocomplete="current-password" placeholder="••••••••" required></div>
     <button class="btn btn-primary login-btn" type="submit">Sign in securely</button>
-    <div class="login-foot">Prototype environment — production version should use managed authentication and encrypted cloud storage.</div>
+    <div class="login-foot">Shared login is enabled. Accounts created by the administrator can sign in from a phone, tablet, or another computer.</div>
   </form></section>
 </div>`; }
 
-function bindLogin(){ document.getElementById('loginForm').addEventListener('submit',e=>{e.preventDefault();const email=document.getElementById('email').value.trim().toLowerCase();const password=document.getElementById('password').value;const u=state.users.find(x=>x.email.toLowerCase()===email && x.password===password);if(!u){toast('Invalid email or password');return}session={userId:u.id};saveSession();selectedProjectId=u.role==='admin'?state.projects[0]?.id:u.projectIds[0];currentView='overview';render();}); }
+function bindLogin(){
+  document.getElementById('loginForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const email=document.getElementById('email').value.trim().toLowerCase();
+    const password=document.getElementById('password').value;
+    const btn=e.target.querySelector('button[type="submit"]');
+    btn.disabled=true; btn.textContent='Signing in…';
+    const localSnapshot=deepClone(state);
+    try{
+      const result=await apiJson('/api/login',{method:'POST',body:JSON.stringify({email,password})});
+      session={userId:result.user.id,token:result.token}; saveSession();
+      state=normalizeState(result.state); saveLocalState();
+      // One-time migration: the browser where the old Admin created accounts still has
+      // the legacy localStorage database. Move it to the shared server automatically.
+      if(result.user.role==='admin' && !result.serverInitialized && hadSavedLocalState){
+        try{
+          const migrated=await apiJson('/api/admin/migrate-local',{method:'POST',body:JSON.stringify({state:localSnapshot})});
+          state=normalizeState(migrated.state); saveLocalState();
+          setTimeout(()=>toast(`Cloud migration complete: ${migrated.migratedUsers} users and ${migrated.migratedProjects} projects synced`),150);
+        }catch(migrateErr){
+          if(migrateErr.status!==409) setTimeout(()=>toast('Signed in, but the old browser data could not be migrated to shared storage.'),150);
+        }
+      }
+      selectedProjectId=result.user.role==='admin'?state.projects[0]?.id:(state.users.find(u=>u.id===result.user.id)?.projectIds?.[0]||state.projects[0]?.id);
+      currentView='overview'; render();
+    }catch(err){
+      toast(err.message||'Unable to sign in');
+      btn.disabled=false; btn.textContent='Sign in securely';
+    }
+  });
+}
+
+
+async function logout(){
+  try{ if(session?.token) await apiJson('/api/logout',{method:'POST',body:'{}'}); }catch{}
+  session=null; sessionStorage.removeItem(SESSION_KEY); render();
+}
+async function boot(){
+  if(!session?.token){
+    session=null; sessionStorage.removeItem(SESSION_KEY); render(); return;
+  }
+  try{
+    const result=await apiJson('/api/state',{method:'GET'});
+    state=normalizeState(result.state); saveLocalState();
+    session.userId=result.user.id; saveSession(); render();
+  }catch{
+    session=null; sessionStorage.removeItem(SESSION_KEY); render();
+  }
+}
 
 function shellTemplate(){ const u=currentUser(),p=currentProject(); const items=[['overview','home','Overview'],['schedule','schedule','Schedule'],['photos','photos','Photos'],['financials','money','Investment']]; if(u.role==='admin')items.push(['admin','admin','Admin Center']); return `<div class="shell">
 <aside class="sidebar" id="sidebar"><div class="side-brand">${logoMark()}<div><strong>Kairos Legacy Homes</strong><small>Project Portal</small></div></div><nav class="nav">${items.map(([v,i,l])=>`<button data-view="${v}" class="${currentView===v?'active':''}">${svgIcon(i)}<span>${l}</span></button>`).join('')}</nav><div class="side-footer"><div class="user-mini"><div class="avatar">${initials(u.name)}</div><div><strong>${u.name}</strong><span>${u.role==='admin'?'Administrator':'Investor / Client'}</span></div></div><button class="logout" id="logoutBtn">Sign out</button></div></aside>
@@ -162,7 +241,7 @@ function shellTemplate(){ const u=currentUser(),p=currentProject(); const items=
 
 function bindShell(){
   document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{currentView=b.dataset.view;document.getElementById('sidebar').classList.remove('open');render();});
-  document.getElementById('logoutBtn').onclick=()=>{session=null;sessionStorage.removeItem(SESSION_KEY);render();};
+  document.getElementById('logoutBtn').onclick=logout;
   document.getElementById('mobileMenu').onclick=()=>document.getElementById('sidebar').classList.toggle('open');
   const sw=document.getElementById('projectSwitch'); if(sw)sw.onchange=e=>{selectedProjectId=e.target.value;currentView=currentView==='admin'?'admin':'overview';render();};
 }
@@ -603,7 +682,7 @@ function openPhotoModal(photo=null){
     <div class="field full"><label>Photo title</label><input class="input" name="title" value="${attr(photo?.title||'')}" required></div>
     <div class="field"><label>Date</label><input class="input" type="date" name="date" value="${photo?.date||todayISO()}" required></div>
     <div class="field"><label>Project phase</label><input class="input" name="phase" list="phaseNames" value="${attr(photo?.phase||'')}" placeholder="Framing, HVAC, Exterior…"><datalist id="phaseNames">${phaseOptions.map(x=>`<option value="${attr(x)}"></option>`).join('')}</datalist></div>
-    <div class="field full"><label>${editing?'Replace image (optional)':'Image file'}</label><input class="input" type="file" name="file" accept="image/*" ${editing?'':'required'}><small class="muted">${editing?'Leave empty to keep the current image. ':''}In this prototype, photos are stored in your browser. Production storage should use private cloud object storage.</small></div>
+    <div class="field full"><label>${editing?'Replace image (optional)':'Image file'}</label><input class="input" type="file" name="file" accept="image/*" ${editing?'':'required'}><small class="muted">${editing?'Leave empty to keep the current image. ':''}Photos are synchronized to the shared portal so assigned clients can view them from other devices. For very large photo libraries, private object storage is recommended.</small></div>
   </div><div class="form-actions"><button class="btn btn-primary">${editing?'Save photo':'Upload photo'}</button></div></form>`,(w,close)=>{
     w.querySelector('#photoForm').onsubmit=e=>{
       e.preventDefault(); const f=new FormData(e.target),file=f.get('file');
@@ -643,4 +722,4 @@ function openExpenseModal(expense=null){
 function escapeHtml(s=''){ return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function attr(s=''){ return escapeHtml(s); }
 
-render();
+boot();
