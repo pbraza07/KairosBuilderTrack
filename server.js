@@ -416,6 +416,43 @@ function applyCredentialUpdates(data, passwordUpdates, { preserveAdminId = null 
 }
 
 async function handleApi(req, res, pathname) {
+  if (pathname.startsWith('/api/buildertrend/')) {
+    const workerKey = process.env.BUILDERTREND_WORKER_TOKEN || '';
+    const supplied = String(req.headers.authorization || '').replace(/^Bearer /, '');
+    const worker = workerKey.length >= 32 && crypto.timingSafeEqual(crypto.createHash('sha256').update(supplied).digest(), crypto.createHash('sha256').update(workerKey).digest());
+    const actor = worker ? null : sessionUser(req);
+    if (!worker && actor?.role !== 'admin') return sendJson(res, 403, {error:'Administrator access required'});
+    ensureWritablePersistentStorage();
+    shared.buildertrend = shared.buildertrend || {status:'idle', snapshots:{}};
+    const bt = shared.buildertrend;
+    if (pathname === '/api/buildertrend/status' && req.method === 'GET' && !worker) {
+      return sendJson(res, 200, {status:bt.status, requestedAt:bt.requestedAt, lastSuccess:bt.lastSuccess, error:bt.error, sections:Object.keys(bt.snapshots || {})});
+    }
+    if (pathname === '/api/buildertrend/snapshot' && req.method === 'GET' && !worker) return sendJson(res,200,bt.snapshots || {});
+    if (pathname === '/api/buildertrend/refresh' && req.method === 'POST' && !worker) {
+      if (workerKey.length < 32) return sendJson(res,503,{error:'Configure BUILDERTREND_WORKER_TOKEN on the server and worker first.'});
+      if (bt.status === 'running' && Date.now()-Date.parse(bt.claimedAt)<600000 || bt.status === 'queued') return sendJson(res,202,{status:bt.status});
+      bt.status='queued'; bt.requestedAt=new Date().toISOString(); bt.error=null;
+      await persistShared('buildertrend-request'); return sendJson(res,202,{status:bt.status});
+    }
+    if (pathname === '/api/buildertrend/claim' && req.method === 'POST' && worker) {
+      if (bt.status !== 'queued' && !(bt.status === 'running' && Date.now()-Date.parse(bt.claimedAt)>600000)) return sendJson(res,200,{job:null});
+      bt.status='running'; bt.claimedAt=new Date().toISOString(); bt.job=crypto.randomUUID();
+      await persistShared('buildertrend-claim'); return sendJson(res,200,{job:bt.job});
+    }
+    if (pathname === '/api/buildertrend/result' && req.method === 'POST' && worker) {
+      const body=await readJson(req);
+      if (bt.status !== 'running' || body.job !== bt.job) return sendJson(res,409,{error:'Stale sync job'});
+      if (body.error) {bt.status='failed'; bt.error='Sync failed. Check the local worker and sign in again if required.';}
+      else {
+        if (!body.sections || typeof body.sections !== 'object' || Array.isArray(body.sections) || !Object.keys(body.sections).length || Buffer.byteLength(JSON.stringify(body.sections))>5000000) return sendJson(res,400,{error:'Invalid or oversized capture'});
+        bt.snapshots=body.sections; bt.lastSuccess=new Date().toISOString(); bt.status='captured'; bt.error=null;
+      }
+      await persistShared('buildertrend-result'); return sendJson(res,200,{status:bt.status});
+    }
+    return sendJson(res,404,{error:'Unknown sync operation'});
+  }
+
   if (pathname === '/api/status' && req.method === 'GET') {
     return sendJson(res, 200, {
       ok: true,
@@ -654,7 +691,7 @@ async function start() {
     const pathname = decodeURIComponent(parsed.pathname || '/');
 
     if (pathname === '/health' || pathname === '/healthz') {
-      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '1.9.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
+      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '1.10.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
     }
 
     if (pathname.startsWith('/api/')) {
@@ -667,6 +704,7 @@ async function start() {
       }
     }
 
+    if (!['/', '/index.html', '/app.js', '/styles.css', '/Kairos_Construction_Schedule_Template.xlsx'].includes(pathname)) return send(res,404,'Not found');
     const relativePath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
     const safePath = path.normalize(relativePath).replace(/^(\.\.(\/|\\|$))+/, '');
     const filePath = path.join(ROOT, safePath);

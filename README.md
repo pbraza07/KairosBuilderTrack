@@ -1,3 +1,7 @@
+# Version 1.10
+
+See BUILDERTREND_SETUP.md for the new read-only capture foundation and its unfinished full-sync mappings.
+
 # Kairos Legacy Homes — Investor Project Portal v1.9
 
 ## v1.9 — Complete bilingual display coverage

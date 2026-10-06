@@ -1108,9 +1108,10 @@ function renderView(){ const host=document.getElementById('view'); const p=curre
   if(currentView==='schedule') host.innerHTML=scheduleTemplate(p);
   if(currentView==='photos') host.innerHTML=photosTemplate(p);
   if(currentView==='financials') host.innerHTML=financialTemplate(p);
-  if(currentView==='admin') host.innerHTML=adminTemplate();
+  if(currentView==='admin') host.innerHTML=adminTemplate()+buildertrendPanel();
   applyLanguage(host);
   bindView();
+  bindBuildertrend();
 }
 
 function overviewTemplate(p){
@@ -1660,3 +1661,17 @@ function attr(s=''){ return escapeHtml(s); }
 setInterval(()=>refreshClientState(false),30000);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshClientState(true);});
 boot();
+
+function buildertrendPanel(){
+ const pt=currentLanguage==='pt';
+ return `<div class="card" style="margin-top:18px;padding:24px"><h3>Buildertrend</h3><p>${pt?'Captura somente leitura. Os dados capturados precisam ser mapeados antes de atualizar cronogramas e valores.':'Read-only capture. Captured data needs field mapping before updating schedules and amounts.'}</p><button class="btn btn-primary" id="btRefresh">${pt?'Atualizar do Buildertrend':'Refresh from Buildertrend'}</button> <button class="btn btn-outline" id="btStatus">${pt?'Verificar status':'Check status'}</button> <button class="btn btn-outline" id="btDownload">${pt?'Baixar captura':'Download capture'}</button><p id="btMessage" role="status"></p></div>`;
+}
+function bindBuildertrend(){
+ const refresh=document.getElementById('btRefresh'); if(!refresh)return;
+ const message=document.getElementById('btMessage');
+ const show=async()=>{try{const r=await apiJson('/api/buildertrend/status');message.textContent=JSON.stringify(r);}catch(e){message.textContent=e.message;}};
+ refresh.onclick=async()=>{refresh.disabled=true;try{await apiJson('/api/buildertrend/refresh',{method:'POST',body:'{}'});await show();}catch(e){message.textContent=e.message;}finally{refresh.disabled=false;}};
+ document.getElementById('btStatus').onclick=show;
+ document.getElementById('btDownload').onclick=async()=>{try{const r=await apiJson('/api/buildertrend/snapshot');const u=URL.createObjectURL(new Blob([JSON.stringify(r,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='buildertrend-capture.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}catch(e){message.textContent=e.message;}};
+ show();
+}
