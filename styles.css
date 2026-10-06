@@ -102,3 +102,40 @@ a{color:inherit}
 @media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:1fr 1fr}.finance-wrap{grid-template-columns:1fr}.admin-split{grid-template-columns:1fr}.auth-shell{grid-template-columns:1fr}.auth-visual{display:none}}
 @media(max-width:820px){.shell{grid-template-columns:1fr}.sidebar{position:fixed;left:-285px;width:268px;transition:.2s;box-shadow:20px 0 50px rgba(0,0,0,.18)}.sidebar.open{left:0}.mobile-menu{display:grid;place-items:center}.topbar{padding:0 16px;height:70px}.content{padding:22px 16px 36px}.project-switch{min-width:0;max-width:170px}.grid-3,.grid-2{grid-template-columns:1fr}.gallery{grid-template-columns:1fr 1fr}.page-head{align-items:flex-start;flex-direction:column}.phase-row{grid-template-columns:40px 1fr 90px}.phase-row .progress{display:none}.auth-panel{padding:30px 20px}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}}
 @media(max-width:560px){.grid-4{grid-template-columns:1fr 1fr;gap:10px}.metric{padding:16px;min-height:120px}.metric .value{font-size:22px}.metric-icon{display:none}.gallery{grid-template-columns:1fr}.top-actions .icon-btn{display:none}.project-switch{max-width:145px;font-size:11px}.page-head h1{font-size:26px}.hero-card h2{font-size:26px}.finance-wrap{padding:14px}.spend-item{grid-template-columns:95px 1fr 75px}.content{padding-left:12px;padding-right:12px}}
+
+/* Excel schedule import + enhanced scheduling */
+.btn svg{width:16px;height:16px;flex:0 0 auto}
+.status-overdue{background:#fbe9e9;color:#a23b3b}
+.pill-overdue{background:#fbe9e9;color:#a23b3b}
+.schedule-source,.schedule-sync-note{display:flex;align-items:center;gap:7px;margin-top:9px;color:var(--muted);font-size:11px}
+.schedule-source svg{width:15px;height:15px;color:var(--forest)}
+.schedule-sync-note{display:inline-flex;background:#eef4f1;border:1px solid #dde9e4;border-radius:99px;padding:5px 9px;color:#4e6d61}
+.gantt-head,.gantt-row{display:grid}
+.gantt-grid{grid-column:2/-1;grid-row:1;display:grid;grid-template-columns:repeat(var(--months),1fr);height:100%;z-index:0}
+.bar.overdue{background:#c95d5d}
+.schedule-table td:nth-child(2){white-space:normal;min-width:240px}
+.mini-label{font-size:10px;text-transform:uppercase;letter-spacing:.35px}
+.mini-value{font-size:13px}
+.admin-action-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+.schedule-import-box{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:13px;align-items:center;border:1px solid #dbe5e1;background:linear-gradient(135deg,#f8fbf9,#f2f7f4);border-radius:15px;padding:14px 15px;margin-top:4px}
+.schedule-import-icon{width:42px;height:42px;border-radius:12px;background:#e7f0eb;color:var(--forest);display:grid;place-items:center}
+.schedule-import-icon svg{width:21px;height:21px}
+.schedule-import-icon.large{width:48px;height:48px}
+.schedule-import-copy{min-width:0}.schedule-import-copy strong{display:block;font-size:13px}.schedule-import-copy span{display:block;color:#53645d;font-size:11px;margin-top:4px;overflow-wrap:anywhere}.schedule-import-copy small{display:block;color:var(--muted);font-size:10px;line-height:1.5;margin-top:5px}
+.schedule-import-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end}.schedule-import-actions .btn{padding:9px 12px;font-size:11px;text-decoration:none}
+.import-intro{display:flex;gap:13px;align-items:flex-start;background:#f5f8f6;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:18px}.import-intro strong{font-size:14px}.import-intro p{font-size:12px;color:var(--muted);line-height:1.6;margin:5px 0 0}
+.file-drop{border:1.5px dashed #b9c7c1!important;border-radius:14px;padding:18px!important;background:#fafcfb;display:flex!important;gap:12px;align-items:center;cursor:pointer;transition:.18s}.file-drop:hover{border-color:#78978a!important;background:#f5f9f7}.file-drop>span{width:40px;height:40px;border-radius:10px;background:#edf3f0;display:grid;place-items:center;color:var(--forest)}.file-drop svg{width:20px;height:20px}.file-drop strong{display:block;font-size:13px}.file-drop small{display:block;color:var(--muted);font-size:10px;margin-top:4px}.file-drop input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.import-options{align-items:end;margin-top:4px}.checkbox-field{display:flex;align-items:center;min-height:66px}.checkbox-field label{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.45;margin:0}.checkbox-field input{margin-top:2px}
+.import-note{display:grid;gap:4px;background:#fff7e6;border:1px solid #f0dfb8;border-radius:12px;padding:12px 13px;margin:2px 0 14px}.import-note strong{font-size:11px;color:#75591c}.import-note span{font-size:11px;line-height:1.55;color:#745f32}
+.import-status{padding:11px 12px;border-radius:10px;background:#f4f6f5;font-size:11px;margin-bottom:12px}.import-status.loading{background:#eef4f1;color:#49695c}.import-status.success{background:#eaf5ed;color:#397351}.import-status.error{background:#fbecec;color:#9f3535}
+.import-preview-stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0}.import-preview-stats>div{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}.import-preview-stats strong{display:block;font-size:15px}.import-preview-stats span{display:block;font-size:9px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.3px}
+.import-warning{font-size:10px;color:#8a6420;background:#fff7e6;border-radius:9px;padding:9px 10px;margin:8px 0}
+.import-preview-table{border:1px solid var(--line);border-radius:12px;max-height:290px}.import-preview-table .table td{font-size:10px;padding:9px 10px}.import-preview-table .table th{padding:9px 10px}.import-preview-table .table td:nth-child(2){white-space:normal;min-width:190px}.import-more{font-size:10px;margin-top:7px;text-align:right}
+#applyScheduleImport:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+@media(max-width:820px){
+  .schedule-import-box{grid-template-columns:42px 1fr}.schedule-import-actions{grid-column:1/-1;justify-content:flex-start}.import-preview-stats{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:560px){
+  .import-preview-stats{grid-template-columns:1fr 1fr}.schedule-import-box{padding:12px}.schedule-import-actions .btn{flex:1}.schedule-source{flex-wrap:wrap}
+}

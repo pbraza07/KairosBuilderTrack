@@ -1,6 +1,46 @@
-# Kairos Legacy Homes — Investor Portal (Render-ready)
+# Kairos Legacy Homes — Investor Portal v1.1 (Render-ready)
 
-This package is ready to run as a Node.js web service on Render.
+This package is ready to deploy as a Node.js web service on Render and now includes **project-specific Excel schedule import**.
+
+## New: Excel construction schedule sync
+
+From **Admin Center**:
+
+1. Select the project you want to update.
+2. Click **Import Excel** / **Update from Excel**.
+3. Choose that project's `.xlsx` or `.xls` schedule.
+4. Review the detected phases and dates in the preview.
+5. Choose either:
+   - **Replace schedule with spreadsheet** — recommended when the spreadsheet is the authoritative schedule.
+   - **Merge / update matching phase codes** — updates matching phase codes and keeps unmatched portal phases.
+6. Leave **Update project start, target completion, and completion %** checked if you want the project-level dates and completion to be recalculated automatically.
+7. Click **Import schedule**.
+
+The importer supports the spreadsheet structure supplied for this project:
+
+- `ID #`
+- `Title`
+- `Complete`
+- `Duration`
+- `Start`
+- `End`
+
+It also detects common alternate names such as `Phase`, `Task`, `Start Date`, and `Finish Date`.
+
+A phase title such as `300- Driveway - Pouring` is imported as:
+
+- Phase code: `300`
+- Phase name: `Driveway - Pouring`
+
+`Complete = TRUE` becomes 100% complete. Incomplete phases are classified as **Upcoming**, **In progress**, or **Past due** based on their dates. Project completion is calculated using phase durations so longer phases have proportionally more weight.
+
+A generic workbook is included in this package:
+
+`Kairos_Construction_Schedule_Template.xlsx`
+
+The Admin Center also provides a **Template** button to download it.
+
+The last schedule import can be undone from the selected project's Admin Center.
 
 ## Demo credentials
 
@@ -15,23 +55,24 @@ This package is ready to run as a Node.js web service on Render.
 ## Deploy to Render
 
 ### Recommended: GitHub + Render Blueprint
+
 1. Extract this ZIP.
-2. Create a new GitHub repository and upload **all files from this folder to the repository root**.
+2. Upload **all files from this folder to the root of your GitHub repository**.
 3. In Render, choose **New + > Blueprint**.
-4. Connect the GitHub repository.
+4. Connect the repository.
 5. Render will detect `render.yaml`.
 6. Approve the service creation and deploy.
-7. Open the generated `https://...onrender.com` URL.
 
 ### Alternative: New Web Service
-1. Create a **New Web Service** in Render and connect the repository.
-2. Runtime: **Node**.
-3. Build command: `npm install`
-4. Start command: `npm start`
-5. Health check path: `/health`
-6. Deploy.
 
-The server binds to Render's `PORT` environment variable and `0.0.0.0`, so no manual port configuration is required.
+Use:
+
+- Runtime: **Node**
+- Build command: `npm install`
+- Start command: `npm start`
+- Health check path: `/health`
+
+The server binds to Render's `PORT` environment variable automatically.
 
 ## Local test
 
@@ -44,8 +85,19 @@ Then open `http://localhost:10000`.
 
 Health check: `http://localhost:10000/health`
 
-## Important security / persistence note
+## Excel parser
 
-This is still a front-end prototype. It uses browser localStorage for demo users, projects, budgets, phases, expenses, and uploaded images. That means data is tied to the browser/device where it was entered. It is not yet a production authentication/database layer.
+The browser uses SheetJS to read `.xlsx` and `.xls` files. The page loads the library from cdnjs with a jsDelivr fallback. The spreadsheet is parsed in the administrator's browser; the workbook itself is not uploaded to this Node server in this prototype.
 
-For true multi-user use across devices, the next version should use server-side authentication, PostgreSQL/Supabase, project-level authorization, and private cloud photo storage.
+## Important persistence / security note
+
+This remains the Render-ready prototype architecture from the previous version. Users, projects, imported schedule data, budgets, expenses, and uploaded photos are stored in browser `localStorage`.
+
+That means:
+
+- Excel import works immediately for the selected project in that browser.
+- Different project schedules remain logically segregated inside the app.
+- Data is **not yet synchronized between different devices or browsers**.
+- The current demo authentication is not production-grade authentication.
+
+For real investor use across devices, move authentication and project data to PostgreSQL/Supabase (or another server database) with project-level authorization and private object storage for images/documents.

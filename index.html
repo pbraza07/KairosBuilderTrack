@@ -13,6 +13,14 @@
 <body>
   <div id="app"></div>
   <div id="toast" class="toast" aria-live="polite"></div>
+
+  <!-- SheetJS parses Excel schedules directly in the administrator's browser. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    if (!window.XLSX) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"><\\/script>');
+    }
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
