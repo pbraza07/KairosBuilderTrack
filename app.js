@@ -358,7 +358,214 @@ const PT_UI = Object.freeze({
   'Testing, Startup & Punch':'Testes, ativação e pendências',
   'Final Inspections & Turnover':'Inspeções finais e entrega',
   'Other / General':'Outros / Geral'
+
+  ,'Current authorized budget · new expenses update this automatically':'Orçamento autorizado atual · novas despesas atualizam este valor automaticamente'
+  ,'No construction phases yet.':'Ainda não há fases de construção.'
+  ,'Photo':'Foto'
+  ,'Title':'Título'
+  ,'Dates':'Datas'
+  ,'Approved Project Budget':'Orçamento Aprovado do Projeto'
+  ,'Invested to Date':'Investido até o Momento'
+  ,'Edit client':'Editar cliente'
+  ,'Delete client':'Excluir cliente'
+  ,'No project':'Nenhum projeto'
+  ,'Synced from':'Sincronizado de'
+  ,'on':'em'
+  ,'schedule items':'itens do cronograma'
+  ,'uploaded photos':'fotos enviadas'
+  ,'entries':'lançamentos'
+  ,'complete':'concluído'
+  ,'Project photo':'Foto do projeto'
+  ,'project photo':'foto do projeto'
+  ,'Expense':'Despesa'
+  ,'Edit expense':'Editar despesa'
+  ,'Delete expense':'Excluir despesa'
+  ,'Current authorized budget · new expenses update this automatically':'Orçamento autorizado atual · novas despesas atualizam este valor automaticamente'
 });
+
+
+
+// Bilingual display layer for construction data imported from project spreadsheets.
+// Stored project data is never rewritten when a user changes languages; only the display changes.
+const PT_PHASE_NAMES = Object.freeze({
+  'Architectural':'Projeto arquitetônico',
+  'Engineering Design / Load Calcs':'Projeto de engenharia / cálculos de carga',
+  'Survey - Lot grading Plan and Topo':'Levantamento topográfico - plano de nivelamento do lote e topografia',
+  'Print Plans and get stamp with Enginner':'Imprimir plantas e obter carimbo do engenheiro',
+  'Permits':'Licenças',
+  'Utilities - Request Electrical Connection':'Utilidades - solicitar ligação elétrica',
+  'Utilities - Request Water Connection':'Utilidades - solicitar ligação de água',
+  'Boundary Stake Out':'Locação dos limites do terreno',
+  'Cleaning Lot':'Limpeza do terreno',
+  'Rough Stake Out':'Locação preliminar da obra',
+  'Fill Dirt / Pad':'Aterro / preparação do platô',
+  'House Stake Out':'Locação da casa',
+  'Portable Toilet':'Banheiro portátil',
+  'Prepair the rail':'Preparar gabarito / guia',
+  'Compaction test':'Teste de compactação',
+  'Plumbing, Electrical & Mech Underground':'Instalações subterrâneas hidráulicas, elétricas e mecânicas',
+  'Sewer Connection - Utility Water Company':'Ligação de esgoto - concessionária de água',
+  'Underground Inspection':'Inspeção das instalações subterrâneas',
+  'Water line inspection':'Inspeção da linha de água',
+  'Sewer Tap Inspection':'Inspeção da conexão de esgoto',
+  'Prepair Slab':'Preparar laje',
+  'Slab Inspection':'Inspeção da laje',
+  'Driveway Preliminary Inspection':'Inspeção preliminar da entrada de veículos',
+  'Pouring Slab':'Concretagem da laje',
+  'Dumpster Delivery':'Entrega da caçamba',
+  'Exterior Masonry':'Alvenaria externa',
+  'Water Meter Set up':'Instalação do hidrômetro',
+  'Truss Layout':'Marcação das tesouras do telhado',
+  'Lintel Inspection':'Inspeção das vergas',
+  'Meter Can Installation':'Instalação da caixa do medidor elétrico',
+  'Pouring Lintels':'Concretagem das vergas',
+  'TUG Inspection':'Inspeção TUG',
+  'Stucco Grading':'Preparação do terreno para estuque',
+  'Prepair Trusses to Fly':'Preparar tesouras para içamento',
+  'Framing':'Estrutura de madeira',
+  'Sheathing':'Fechamento estrutural',
+  'Exterior Doors':'Portas externas',
+  'Install Windows':'Instalação das janelas',
+  'Plumbing Rough In':'Hidráulica bruta',
+  'Sheathing Inspection':'Inspeção do fechamento estrutural',
+  'Apply Underlayment':'Aplicação da manta / subcobertura',
+  'Wall Sheathing / Sub-siding Inspection':'Inspeção do fechamento de paredes / base do revestimento',
+  '2º Plumbing Rough In Inspection':'2ª inspeção da hidráulica bruta',
+  'HVAC Rough In':'HVAC bruto',
+  'Electrical Rough-In':'Elétrica bruta',
+  'Dry in flash Inspection':'Inspeção de impermeabilização / flashing',
+  'HVAC Rough in Inspection':'Inspeção do HVAC bruto',
+  'Electrical Rough in Inspection':'Inspeção da elétrica bruta',
+  'Install Shingles':'Instalação das telhas',
+  'Framing / Combined Inspection':'Inspeção da estrutura / inspeção combinada',
+  'Lathe':'Tela para estuque',
+  'Lathe Inspection':'Inspeção da tela para estuque',
+  'Insulation Install':'Instalação do isolamento',
+  'Insullation Inspection':'Inspeção do isolamento',
+  'Stucco':'Estuque',
+  'Drywall':'Drywall',
+  'Septic Tank Installation':'Instalação da fossa séptica',
+  'Hook up':'Conexão',
+  'Hook up Inspection - Septic':'Inspeção da conexão - sistema séptico',
+  'DOH (Septic) Inspection':'Inspeção do DOH - sistema séptico',
+  'Painting-Exterior':'Pintura externa',
+  'Painting-Interior':'Pintura interna',
+  'Garage Door Installation':'Instalação da porta da garagem',
+  'Clean / Prime Flooring and Wet Walls':'Limpeza / preparação do piso e áreas molhadas',
+  'Tile Flooring - Bathroom - Installation':'Instalação de piso cerâmico - banheiro',
+  'Tile Flooring Grout':'Rejunte do piso cerâmico',
+  'Tile Wall (Bathrooms)':'Revestimento cerâmico de parede - banheiros',
+  'Well Installation':'Instalação do poço',
+  'Soffit':'Forro de beiral',
+  'Soffit - Inspection':'Inspeção do forro de beiral',
+  'Tile Wall Grout (Bathrooms)':'Rejunte do revestimento de parede - banheiros',
+  'Tile / Vinyl - Other rooms - Installation':'Instalação de piso cerâmico / vinílico - demais ambientes',
+  'Cabinet Install':'Instalação dos armários',
+  'HVAC Finish':'Acabamento do HVAC',
+  'Light Fixture Install':'Instalação das luminárias',
+  'Driveway Cut / Install Culvert Pipe':'Corte da entrada / instalação do tubo de drenagem',
+  'Driveway Formboard':'Formas da entrada de veículos',
+  'Countertop Install':'Instalação das bancadas',
+  'Driveway - Pre-Pour Inspection':'Entrada de veículos - inspeção antes da concretagem',
+  'Door, Baseboards and Casings':'Portas, rodapés e guarnições',
+  'Plumbing Fixtures Install':'Instalação dos aparelhos hidráulicos',
+  'Mirrors / Blinds / Shelves / Numbers':'Espelhos / persianas / prateleiras / números',
+  'Driveway - Pouring':'Concretagem da entrada de veículos',
+  'Pre-Power Inspection':'Inspeção pré-energização',
+  'Water Hook up - Meter or Well':'Ligação de água - hidrômetro ou poço',
+  'Remove Dumpster from site':'Retirar caçamba do terreno',
+  'Remove Portable Toilet':'Retirar banheiro portátil',
+  'Final Grading':'Nivelamento final do terreno',
+  'Asphalt Repair':'Reparo do asfalto',
+  'Site Drainage Inspection':'Inspeção da drenagem do terreno',
+  'Install Mailbox':'Instalação da caixa de correio',
+  'Install Clean Out Pad':'Instalação da base do cleanout',
+  'Electrical Meter Set up':'Instalação do medidor elétrico',
+  'Electrical Starting':'Ativação elétrica',
+  'Sod':'Grama em placas',
+  'Blown Door Test':'Teste Blower Door',
+  'HVAC Starting':'Partida do HVAC',
+  'Termite Bait':'Iscas contra cupins',
+  'Utility Inspection - Final Building':'Inspeção final de utilidades da edificação',
+  'Blown Insulation':'Isolamento soprado',
+  'Rough Punchout':'Correções preliminares / punch list',
+  'Driveway - Final Inspection':'Entrada de veículos - inspeção final',
+  'Painting/Caulking - Door/Baseboards/Casings':'Pintura / calafetação - portas, rodapés e guarnições',
+  'Final Painting':'Pintura final',
+  'Painting Front Door':'Pintura da porta de entrada',
+  'Door Knobs and Door Stop':'Maçanetas e batentes de porta',
+  'Final Cleaning':'Limpeza final',
+  'Appliance Installation':'Instalação dos eletrodomésticos',
+  'Electrical Final Inspection':'Inspeção elétrica final',
+  'Mechanical Final Inspection':'Inspeção mecânica final',
+  'Plumbing Final Inspection':'Inspeção hidráulica final',
+  'Building Final Inspection':'Inspeção final da edificação',
+  // Seed/demo and common phase names
+  'Permitting & Mobilization':'Licenciamento e mobilização',
+  'Sitework & Foundation':'Terraplenagem e fundação',
+  'Framing & Structural':'Estrutura e framing',
+  'Electrical Rough-In':'Elétrica bruta',
+  'HVAC Rough-In':'HVAC bruto',
+  'Insulation & Drywall':'Isolamento e drywall',
+  'Interior Finishes':'Acabamentos internos',
+  'Finals & Turnover':'Etapas finais e entrega',
+  'Design & Engineering':'Projeto e engenharia',
+  'Interiors & Finals':'Interiores e etapas finais',
+  'Pre-Construction':'Pré-construção',
+  'Foundation Complete':'Fundação concluída',
+  'First-Floor Framing':'Estrutura do primeiro pavimento',
+  'Roof Trusses Set':'Tesouras do telhado instaladas',
+  'Lot Survey & Stakeout':'Levantamento e locação do lote'
+});
+
+const PT_EXPENSE_CATEGORIES = Object.freeze({
+  'Land / Acquisition':'Terreno / aquisição',
+  'Foundation':'Fundação',
+  'Framing':'Estrutura',
+  'MEP Rough-In':'Instalações MEP brutas',
+  'Windows / Exterior':'Janelas / exterior',
+  'Design & Engineering':'Projeto e engenharia',
+  'Permits / Fees':'Licenças / taxas',
+  'Electrical':'Elétrica',
+  'Plumbing':'Hidráulica',
+  'HVAC':'HVAC',
+  'Roofing':'Cobertura',
+  'Drywall':'Drywall',
+  'Painting':'Pintura',
+  'Cabinets':'Armários',
+  'Flooring':'Pisos',
+  'Landscaping':'Paisagismo',
+  'Other':'Outros'
+});
+
+const PT_PHASE_PHRASES = [
+  ['Final Inspection','Inspeção final'],['Rough In Inspection','Inspeção da instalação bruta'],['Rough-In Inspection','Inspeção da instalação bruta'],
+  ['Pre-Pour Inspection','Inspeção antes da concretagem'],['Site Drainage','Drenagem do terreno'],['Driveway','Entrada de veículos'],
+  ['Electrical','Elétrica'],['Plumbing','Hidráulica'],['Mechanical','Mecânica'],['Inspection','Inspeção'],['Installation','Instalação'],
+  ['Install','Instalação'],['Painting','Pintura'],['Final','Final'],['Exterior','Externo'],['Interior','Interno'],['Cleaning','Limpeza'],
+  ['Foundation','Fundação'],['Framing','Estrutura'],['Roof','Telhado'],['Windows','Janelas'],['Doors','Portas'],['Door','Porta'],
+  ['Utilities','Utilidades'],['Water','Água'],['Sewer','Esgoto'],['Grading','Nivelamento'],['Survey','Levantamento'],['Permits','Licenças'],
+  ['Concrete','Concreto'],['Slab','Laje'],['Insulation','Isolamento'],['Cabinet','Armário'],['Countertop','Bancada'],['Flooring','Piso'],
+  ['Appliance','Eletrodoméstico'],['Light Fixture','Luminária'],['Meter','Medidor'],['Mailbox','Caixa de correio'],['Test','Teste'],
+  ['Starting','Ativação'],['Complete','Concluído']
+].sort((a,b)=>b[0].length-a[0].length);
+
+function localizedPhaseName(name){
+  const raw=String(name??'').trim();
+  if(currentLanguage!=='pt' || !raw) return raw;
+  if(PT_PHASE_NAMES[raw]) return PT_PHASE_NAMES[raw];
+  let out=raw;
+  for(const [en,pt] of PT_PHASE_PHRASES){ out=out.replace(new RegExp(`\\b${en.replace(/[.*+?^${}()|[\\]\\]/g,'\\$&')}\\b`,'gi'),pt); }
+  return out;
+}
+function localizedExpenseCategory(value){
+  const raw=String(value??'').trim();
+  return currentLanguage==='pt'?(PT_EXPENSE_CATEGORIES[raw]||raw):raw;
+}
+function localizedPhotoPhase(value){
+  const raw=String(value??'').trim();
+  return localizedPhaseName(raw);
+}
 
 const PT_DYNAMIC = [
   [/^(\d+) of (\d+) completed$/,'$1 de $2 concluídas'],
@@ -394,7 +601,7 @@ const PT_DYNAMIC = [
   [/^Optimized (.+) → (.+) \((\d+)% smaller\) · (.+)$/,'Otimizada $1 → $2 ($3% menor) · $4'],
   [/^Current optimized size: (.+)\.$/,'Tamanho otimizado atual: $1.'],
   [/^Import Excel schedule · (.+)$/,'Importar cronograma do Excel · $1'],
-  [/^Open (.+)$/,'Abrir $1'],
+  [/^Open (.+)$/,(...args)=>`Abrir ${localizedPhaseName(args[1])}`],
   [/^Delete construction phase "(.+)"\?$/,'Excluir a fase de construção "$1"?'],
   [/^Delete photo "(.+)"\?$/,'Excluir a foto "$1"?'],
   [/^Delete expense "(.+)" for (.+)\?$/,'Excluir a despesa "$1" no valor de $2?'],
@@ -403,7 +610,13 @@ const PT_DYNAMIC = [
   [/^(\d+) expense is waiting for your approval$/,'$1 despesa aguarda sua aprovação'],
   [/^(\d+) expenses are waiting for your approval$/,'$1 despesas aguardam sua aprovação'],
   [/^(\d+) expense is waiting for client approval$/,'$1 despesa aguarda aprovação do cliente'],
-  [/^(\d+) expenses are waiting for client approval$/,'$1 despesas aguardam aprovação do cliente']
+  [/^(\d+) expenses are waiting for client approval$/,'$1 despesas aguardam aprovação do cliente'],
+  [/^on (.+) · (\d+) phases$/,'em $1 · $2 fases'],
+  [/^· (\d+) phases$/,'· $1 fases'],
+  [/^(.+) · (\d+)% complete$/,'$1 · $2% concluído'],
+  [/^(\d+) schedule items$/,'$1 itens do cronograma'],
+  [/^(\d+) uploaded photos$/,'$1 fotos enviadas'],
+  [/^(\d+) entries$/,'$1 lançamentos']
 ];
 
 function localeCode(){ return currentLanguage==='pt'?'pt-BR':'en-US'; }
@@ -414,7 +627,7 @@ function translateVisibleText(value){
   let translated=PT_UI[trimmed];
   if(translated===undefined){
     translated=trimmed;
-    for(const [pattern,replacement] of PT_DYNAMIC){ if(pattern.test(trimmed)){ translated=trimmed.replace(pattern,replacement); break; } }
+    for(const [pattern,replacement] of PT_DYNAMIC){ if(pattern.test(trimmed)){ translated=typeof replacement==='function'?trimmed.replace(pattern,replacement):trimmed.replace(pattern,replacement); break; } }
   }
   if(translated===trimmed)return original;
   const lead=original.match(/^\s*/)?.[0]||'', tail=original.match(/\s*$/)?.[0]||'';
@@ -776,7 +989,7 @@ function openPhotoLightbox(photoId){
   wrap.innerHTML=`<div class="lightbox-stage"><button class="lightbox-close" aria-label="Close">${svgIcon('close')}</button><button class="lightbox-nav prev" aria-label="Previous photo">‹</button><img class="lightbox-image" alt=""><button class="lightbox-nav next" aria-label="Next photo">›</button><div class="lightbox-footer"><div><strong class="lightbox-title"></strong><span class="lightbox-meta"></span></div><button class="btn btn-lightbox-download">${svgIcon('download')} Download</button></div></div>`;
   document.body.appendChild(wrap); applyLanguage(wrap); document.body.classList.add('lightbox-open');
   const img=wrap.querySelector('.lightbox-image'),title=wrap.querySelector('.lightbox-title'),meta=wrap.querySelector('.lightbox-meta'),prev=wrap.querySelector('.prev'),next=wrap.querySelector('.next'),dl=wrap.querySelector('.btn-lightbox-download');
-  const draw=()=>{const ph=photos[index];img.src=ph.url;img.alt=ph.title||'Project photo';title.textContent=ph.title||'Project photo';meta.textContent=`${ph.phase||translateVisibleText('Project update')} · ${fmtDate(ph.date)} · ${index+1} ${currentLanguage==='pt'?'de':'of'} ${photos.length}`;prev.disabled=photos.length<2;next.disabled=photos.length<2;dl.onclick=()=>downloadProjectPhoto(ph.id);};
+  const draw=()=>{const ph=photos[index];img.src=ph.url;img.alt=ph.title||'Project photo';title.textContent=ph.title?localizedPhaseName(ph.title):translateVisibleText('Project photo');meta.textContent=`${ph.phase?localizedPhotoPhase(ph.phase):translateVisibleText('Project update')} · ${fmtDate(ph.date)} · ${index+1} ${currentLanguage==='pt'?'de':'of'} ${photos.length}`;prev.disabled=photos.length<2;next.disabled=photos.length<2;dl.onclick=()=>downloadProjectPhoto(ph.id);};
   const close=()=>{document.removeEventListener('keydown',keys);document.body.classList.remove('lightbox-open');wrap.remove();};
   const move=delta=>{index=(index+delta+photos.length)%photos.length;draw();};
   const keys=e=>{if(e.key==='Escape')close();if(e.key==='ArrowLeft'&&photos.length>1)move(-1);if(e.key==='ArrowRight'&&photos.length>1)move(1);};
@@ -784,7 +997,7 @@ function openPhotoLightbox(photoId){
 }
 function notificationCenterTemplate(){
   const u=currentUser(),pending=pendingApprovalItems(),history=expenseHistoryItems().slice(0,12);
-  return `<div class="notification-summary"><strong>${pending.length}</strong><span>${pending.length===1?'expense is':'expenses are'} waiting for ${u?.role==='client'?'your':'client'} approval</span></div><div class="notification-list">${pending.map(({project,expense})=>`<div class="notification-card"><div class="notification-icon">${svgIcon('money')}</div><div class="notification-copy"><strong>${escapeHtml(expense.cat)}</strong><span>${escapeHtml(project.name)} · ${money(expense.amount)}</span><small>Requested ${fmtDateTime(expense.approvalRequestedAt)}</small></div>${u?.role==='client'?`<div class="notification-actions"><button class="btn btn-soft btn-compact" data-expense-decision="rejected" data-expense-id="${expense.id}" data-expense-project="${project.id}">Not approve</button><button class="btn btn-primary btn-compact" data-expense-decision="approved" data-expense-id="${expense.id}" data-expense-project="${project.id}">${svgIcon('check')} Approve</button></div>`:'<span class="approval-badge approval-pending">Awaiting client</span>'}</div>`).join('')||'<div class="empty compact-empty">No expense approvals are waiting.</div>'}</div><div class="notification-history-head"><strong>Recent expense activity</strong></div><div class="notification-history">${history.map(({project,history:h})=>`<div><span class="history-dot ${h.status==='approved'?'ok':h.status==='rejected'?'no':''}"></span><p><strong>${escapeHtml(h.action||'Expense activity')}</strong><small>${escapeHtml(project.name)} · ${escapeHtml(h.category||'Expense')} ${h.amount?`· ${money(h.amount)}`:''}<br>${escapeHtml(h.actorName||'System')} · ${fmtDateTime(h.at)}</small></p></div>`).join('')||'<div class="muted">No expense history yet.</div>'}</div>`;
+  return `<div class="notification-summary"><strong>${pending.length}</strong><span>${pending.length===1?'expense is':'expenses are'} waiting for ${u?.role==='client'?'your':'client'} approval</span></div><div class="notification-list">${pending.map(({project,expense})=>`<div class="notification-card"><div class="notification-icon">${svgIcon('money')}</div><div class="notification-copy"><strong>${escapeHtml(localizedExpenseCategory(expense.cat))}</strong><span>${escapeHtml(project.name)} · ${money(expense.amount)}</span><small>Requested ${fmtDateTime(expense.approvalRequestedAt)}</small></div>${u?.role==='client'?`<div class="notification-actions"><button class="btn btn-soft btn-compact" data-expense-decision="rejected" data-expense-id="${expense.id}" data-expense-project="${project.id}">Not approve</button><button class="btn btn-primary btn-compact" data-expense-decision="approved" data-expense-id="${expense.id}" data-expense-project="${project.id}">${svgIcon('check')} Approve</button></div>`:'<span class="approval-badge approval-pending">Awaiting client</span>'}</div>`).join('')||'<div class="empty compact-empty">No expense approvals are waiting.</div>'}</div><div class="notification-history-head"><strong>Recent expense activity</strong></div><div class="notification-history">${history.map(({project,history:h})=>`<div><span class="history-dot ${h.status==='approved'?'ok':h.status==='rejected'?'no':''}"></span><p><strong>${escapeHtml(h.action||'Expense activity')}</strong><small>${escapeHtml(project.name)} · ${escapeHtml(localizedExpenseCategory(h.category||'Expense'))} ${h.amount?`· ${money(h.amount)}`:''}<br>${escapeHtml(h.actorName||'System')} · ${fmtDateTime(h.at)}</small></p></div>`).join('')||'<div class="muted">No expense history yet.</div>'}</div>`;
 }
 function openNotificationCenter(){
   modal('Notifications & approvals',notificationCenterTemplate(),(w,close)=>{w.querySelectorAll('[data-expense-decision]').forEach(b=>b.onclick=()=>{const projectId=b.dataset.expenseProject,expenseId=b.dataset.expenseId,decision=b.dataset.expenseDecision;close();openExpenseDecisionModal(projectId,expenseId,decision);});});
@@ -796,7 +1009,7 @@ function openExpenseDecisionModal(projectId,expenseId,decision){
 }
 function expenseHistoryTemplate(p){
   const rows=(p.expenseHistory||[]).slice().sort((a,b)=>String(b.at||'').localeCompare(String(a.at||''))).slice(0,40);
-  return `<div class="expense-history-list">${rows.map(h=>`<div class="expense-history-row"><span class="history-dot ${h.status==='approved'?'ok':h.status==='rejected'?'no':''}"></span><div><strong>${escapeHtml(h.action||'Expense activity')}</strong><span>${escapeHtml(h.category||'Expense')} ${h.amount?`· ${money(h.amount)}`:''}${h.details?` · ${escapeHtml(h.details)}`:''}</span></div><div><strong>${escapeHtml(h.actorName||'System')}</strong><span>${fmtDateTime(h.at)}</span></div></div>`).join('')||'<div class="empty compact-empty">No expense history has been recorded yet.</div>'}</div>`;
+  return `<div class="expense-history-list">${rows.map(h=>`<div class="expense-history-row"><span class="history-dot ${h.status==='approved'?'ok':h.status==='rejected'?'no':''}"></span><div><strong>${escapeHtml(h.action||'Expense activity')}</strong><span>${escapeHtml(localizedExpenseCategory(h.category||'Expense'))} ${h.amount?`· ${money(h.amount)}`:''}${h.details?` · ${escapeHtml(h.details)}`:''}</span></div><div><strong>${escapeHtml(h.actorName||'System')}</strong><span>${fmtDateTime(h.at)}</span></div></div>`).join('')||'<div class="empty compact-empty">No expense history has been recorded yet.</div>'}</div>`;
 }
 
 function render(){
@@ -906,18 +1119,18 @@ function overviewTemplate(p){
   const synced=p.scheduleSource?`<span class="schedule-sync-note">Schedule synced ${fmtDate(p.scheduleSource.importedDate)} from Excel</span>`:'';
   return `<div class="page-head"><div><h1>Project overview</h1><p>A clear snapshot of schedule, construction progress, and investment activity.</p>${synced}</div><div class="head-actions"><button class="btn btn-outline" data-goto="photos">View latest photos</button><button class="btn btn-primary" data-goto="schedule">Open schedule</button></div></div>
 <div class="hero-card card"><div class="eyebrow">${p.status}</div><h2>${p.name}</h2><p>${p.summary}</p><div class="hero-meta"><div><strong>${p.address}</strong><span>Project location</span></div><div><strong>${fmtDate(p.start)}</strong><span>Construction start</span></div><div><strong>${fmtDate(p.target)}</strong><span>Target completion</span></div><div><strong>${fmtDate(p.lastUpdate)}</strong><span>Last project update</span></div></div></div>
-<div class="grid grid-4" style="margin-top:18px"><div class="card metric"><span class="label">Project completion</span><div class="value">${p.completion}%</div><div class="progress"><span style="width:${p.completion}%"></span></div><div class="metric-icon">${svgIcon('schedule')}</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${p.budget?Math.round((p.invested/p.budget)*100):0}% of project budget</div><div class="metric-icon">${svgIcon('money')}</div></div><div class="card metric"><span class="label">Remaining budget</span><div class="value">${money(remaining)}</div><div class="muted" style="font-size:12px">Total budget ${money(p.budget)}</div></div><div class="card metric"><span class="label">Current / next phase</span><div class="value" style="font-size:19px;line-height:1.3">${next?.name || 'Project Complete'}</div><div class="muted" style="font-size:12px">${next?taskStatusLabel(next):'All milestones complete'}</div></div></div>
+<div class="grid grid-4" style="margin-top:18px"><div class="card metric"><span class="label">Project completion</span><div class="value">${p.completion}%</div><div class="progress"><span style="width:${p.completion}%"></span></div><div class="metric-icon">${svgIcon('schedule')}</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${p.budget?Math.round((p.invested/p.budget)*100):0}% of project budget</div><div class="metric-icon">${svgIcon('money')}</div></div><div class="card metric"><span class="label">Remaining budget</span><div class="value">${money(remaining)}</div><div class="muted" style="font-size:12px">Total budget ${money(p.budget)}</div></div><div class="card metric"><span class="label">Current / next phase</span><div class="value" style="font-size:19px;line-height:1.3">${next?escapeHtml(localizedPhaseName(next.name)):translateVisibleText('Project Complete')}</div><div class="muted" style="font-size:12px">${next?taskStatusLabel(next):'All milestones complete'}</div></div></div>
 <div class="grid grid-2" style="margin-top:18px"><div class="card"><div class="card-head"><h3>Construction phases</h3><span class="muted">${p.tasks.filter(x=>taskStatus(x)==='done').length} of ${p.tasks.length} completed</span></div>${p.tasks.slice(0,6).map((t,i)=>phaseRow(t,i)).join('')}</div><div class="card"><div class="card-head"><h3>Latest project photos</h3><button class="btn btn-soft" data-goto="photos">View all</button></div><div class="gallery" style="grid-template-columns:1fr 1fr">${p.photos.slice(-4).reverse().map(photoCard).join('')||'<div class="empty">No photos uploaded yet.</div>'}</div></div></div>`;
 }
 
 function phaseRow(t,i){
-  return `<div class="phase-row"><div class="phase-num">${escapeHtml(t.code||String(i+1).padStart(2,'0'))}</div><div class="phase-title"><strong>${escapeHtml(t.name)}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)}</span><em class="phase-category-chip">${escapeHtml(taskCategory(t))}</em></div><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><div class="phase-status ${taskStatusClass(t)}">${taskStatusLabel(t)}</div></div>`;
+  return `<div class="phase-row"><div class="phase-num">${escapeHtml(t.code||String(i+1).padStart(2,'0'))}</div><div class="phase-title"><strong>${escapeHtml(localizedPhaseName(t.name))}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)}</span><em class="phase-category-chip">${escapeHtml(taskCategory(t))}</em></div><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><div class="phase-status ${taskStatusClass(t)}">${taskStatusLabel(t)}</div></div>`;
 }
 
 function scheduleTemplate(p){
   const admin=currentUser().role==='admin';
   const src=p.scheduleSource;
-  return `<div class="page-head"><div><h1>Construction schedule</h1><p>Follow every construction phase and planned work from start through turnover.</p>${src?`<div class="schedule-source"><span>${svgIcon('file')}</span><span>Last Excel sync: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} phases</span></div>`:''}</div><div class="head-actions">${admin?`<button class="btn btn-soft" id="scheduleAddPhaseBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="scheduleImportBtn">${svgIcon('upload')} Import Excel</button>`:''}<div class="tabs"><button data-smode="gantt" class="${scheduleMode==='gantt'?'active':''}">Gantt</button><button data-smode="list" class="${scheduleMode==='list'?'active':''}">List</button></div></div></div><div class="card">${scheduleMode==='gantt'?ganttTemplate(p):listScheduleTemplate(p)}</div>`;
+  return `<div class="page-head"><div><h1>Construction schedule</h1><p>Follow every construction phase and planned work from start through turnover.</p>${src?`<div class="schedule-source"><span>${svgIcon('file')}</span><span>${currentLanguage==='pt'?`Última sincronização com Excel: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} fases`:`Last Excel sync: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} phases`}</span></div>`:''}</div><div class="head-actions">${admin?`<button class="btn btn-soft" id="scheduleAddPhaseBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="scheduleImportBtn">${svgIcon('upload')} Import Excel</button>`:''}<div class="tabs"><button data-smode="gantt" class="${scheduleMode==='gantt'?'active':''}">Gantt</button><button data-smode="list" class="${scheduleMode==='list'?'active':''}">List</button></div></div></div><div class="card">${scheduleMode==='gantt'?ganttTemplate(p):listScheduleTemplate(p)}</div>`;
 }
 function monthStartFromISO(s){ const d=new Date(s+'T12:00:00'); return new Date(d.getFullYear(),d.getMonth(),1); }
 function monthDiff(a,b){ return (b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth()); }
@@ -939,9 +1152,9 @@ function ganttTemplate(p){
       const start=Math.max(0,Math.min(monthCount-1,monthDiff(first,monthStartFromISO(t.start))));
       const end=Math.max(start,Math.min(monthCount-1,monthDiff(first,monthStartFromISO(t.end))));
       const st=taskStatus(t);
-      return `<div class="gantt-row" style="grid-template-columns:${template};--months:${monthCount}"><div class="label"><strong>${escapeHtml(t.code||String(i+1))} · ${escapeHtml(t.name)}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)} · ${taskStatusLabel(t)}</span></div><div class="gantt-grid">${Array(monthCount).fill('<i></i>').join('')}</div><div class="bar ${st}" style="grid-column:${start+2}/${end+3};grid-row:1" title="${attr(t.name)}: ${fmtDate(t.start)} – ${fmtDate(t.end)}"></div></div>`;
+      return `<div class="gantt-row" style="grid-template-columns:${template};--months:${monthCount}"><div class="label"><strong>${escapeHtml(t.code||String(i+1))} · ${escapeHtml(localizedPhaseName(t.name))}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)} · ${taskStatusLabel(t)}</span></div><div class="gantt-grid">${Array(monthCount).fill('<i></i>').join('')}</div><div class="bar ${st}" style="grid-column:${start+2}/${end+3};grid-row:1" title="${attr(localizedPhaseName(t.name))}: ${fmtDate(t.start)} – ${fmtDate(t.end)}"></div></div>`;
     }).join('');
-    return `<div class="gantt-category-row" style="grid-template-columns:${template}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} phase${group.items.length===1?'':'s'}</span></div><div class="gantt-category-line"></div></div>${groupRows}`;
+    return `<div class="gantt-category-row" style="grid-template-columns:${template}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} ${currentLanguage==='pt'?(group.items.length===1?'fase':'fases'):(group.items.length===1?'phase':'phases')}</span></div><div class="gantt-category-line"></div></div>${groupRows}`;
   }).join('');
   return `<div class="schedule-category-summary"><strong>${groups.length} construction categories</strong><span>Phases are automatically grouped by their broader construction scope. Admins can change the category on any individual phase.</span></div><div class="timeline"><div class="gantt" style="min-width:${minWidth}px"><div class="gantt-head" style="grid-template-columns:${template}"><div>Phase / trade</div>${months.map(m=>`<div>${m.toLocaleDateString(localeCode(),{month:'short',year:'2-digit'})}</div>`).join('')}</div>${rows}</div></div>`;
 }
@@ -949,7 +1162,7 @@ function listScheduleTemplate(p){
   const admin=currentUser().role==='admin';
   const groups=groupedTasks(p.tasks);
   const colspan=admin?8:7;
-  const body=groups.map(group=>`<tr class="schedule-category-row"><td colspan="${colspan}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} phase${group.items.length===1?'':'s'}</span></div></td></tr>${group.items.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong><span class="category-inline">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${Number(t.duration)||daysBetweenInclusive(t.start,t.end)}</td><td style="min-width:150px"><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><span class="table-progress-label">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td>${admin?`<td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')}`).join('');
+  const body=groups.map(group=>`<tr class="schedule-category-row"><td colspan="${colspan}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} ${currentLanguage==='pt'?(group.items.length===1?'fase':'fases'):(group.items.length===1?'phase':'phases')}</span></div></td></tr>${group.items.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong><span class="category-inline">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${Number(t.duration)||daysBetweenInclusive(t.start,t.end)}</td><td style="min-width:150px"><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><span class="table-progress-label">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td>${admin?`<td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')}`).join('');
   return `<div class="schedule-category-summary"><strong>${groups.length} construction categories</strong><span>Phases are automatically grouped into the broader category that best matches the work.</span></div><div class="table-wrap"><table class="table schedule-table"><thead><tr><th>Code</th><th>Phase</th><th>Start</th><th>Finish</th><th>Days</th><th>Progress</th><th>Status</th>${admin?'<th>Actions</th>':''}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
@@ -958,7 +1171,7 @@ function photosTemplate(p){
   return `<div class="page-head"><div><h1>Project photos</h1><p>Progress documentation organized by project and phase. Select any photo to enlarge it, move through the gallery, or download a copy.</p></div>${admin?`<button class="btn btn-primary" id="addPhotoBtn">${svgIcon('plus')} Add photo</button>`:''}</div><div class="card"><div class="gallery">${p.photos.slice().reverse().map(ph=>photoCard(ph,admin)).join('')||'<div class="empty">No photos have been uploaded for this project yet.</div>'}</div></div>`;
 }
 function photoCard(ph,admin=false){
-  return `<div class="photo photo-clickable" data-photo-open="${ph.id}" tabindex="0" role="button" aria-label="Open ${attr(ph.title||'project photo')}"><img src="${ph.url}" alt="${escapeHtml(ph.title)}"><div class="photo-overlay"><strong>${escapeHtml(ph.title)}</strong><span>${escapeHtml(ph.phase||'Project update')} · ${fmtDate(ph.date)}</span><small>Click to enlarge</small></div><div class="photo-view-actions"><button class="icon-action light" title="Download photo" data-download-photo="${ph.id}">${svgIcon('download')}</button>${admin?`<button class="icon-action light" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action light danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button>`:''}</div></div>`;
+  return `<div class="photo photo-clickable" data-photo-open="${ph.id}" tabindex="0" role="button" aria-label="Open ${attr(ph.title||'project photo')}"><img src="${ph.url}" alt="${escapeHtml(ph.title)}"><div class="photo-overlay"><strong>${escapeHtml(localizedPhaseName(ph.title))}</strong><span>${escapeHtml(ph.phase?localizedPhotoPhase(ph.phase):translateVisibleText('Project update'))} · ${fmtDate(ph.date)}</span><small>Click to enlarge</small></div><div class="photo-view-actions"><button class="icon-action light" title="Download photo" data-download-photo="${ph.id}">${svgIcon('download')}</button>${admin?`<button class="icon-action light" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action light danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button>`:''}</div></div>`;
 }
 
 function aggregateExpenseCategories(expenses=[]){
@@ -972,20 +1185,20 @@ function financialTemplate(p){
   const categorySpend=aggregateExpenseCategories(p.expenses);
   const max=Math.max(...categorySpend.map(e=>Number(e.amount)||0),1);
   const pending=p.expenses.filter(e=>expenseApprovalStatus(e)==='pending');
-  const approvalPanel=pending.length?`<div class="card approval-panel" style="margin-top:18px"><div class="card-head"><div><h3>${client?'Expenses awaiting your approval':'Expenses awaiting client approval'}</h3><span class="muted">${pending.length} pending approval${pending.length===1?'':'s'} · all decisions are recorded in project history</span></div><span class="approval-badge approval-pending">${pending.length} pending</span></div><div class="approval-card-grid">${pending.map(e=>`<div class="approval-card"><div><span>${escapeHtml(e.cat)}</span><strong>${money(e.amount)}</strong><small>${escapeHtml(e.vendor||'No vendor entered')} · requested ${fmtDateTime(e.approvalRequestedAt)}</small></div>${client?`<div class="approval-card-actions"><button class="btn btn-soft btn-compact" data-expense-decision="rejected" data-expense-id="${e.id}" data-expense-project="${p.id}">Not approve</button><button class="btn btn-primary btn-compact" data-expense-decision="approved" data-expense-id="${e.id}" data-expense-project="${p.id}">${svgIcon('check')} Approve</button></div>`:'<span class="approval-badge approval-pending">Waiting</span>'}</div>`).join('')}</div></div>`:'';
-  return `<div class="page-head"><div><h1>Investment & budget</h1><p>Investor-friendly visibility into budget utilization, project costs, approvals, and expense history.</p></div>${admin?`<button class="btn btn-primary" id="financialAddExpenseBtn">${svgIcon('plus')} Add expense</button>`:''}</div><div class="grid grid-3"><div class="card metric"><span class="label">Approved project budget</span><div class="value">${money(p.budget)}</div><div class="muted" style="font-size:12px">Current authorized budget${admin?' · new expenses update this automatically':''}</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${pct}% utilized</div></div><div class="card metric"><span class="label">Remaining capital</span><div class="value">${money(Math.max(0,p.budget-p.invested))}</div><div class="muted" style="font-size:12px">Based on current budget</div></div></div>${approvalPanel}<div class="card" style="margin-top:18px"><div class="card-head"><h3>Capital utilization</h3><span class="muted">Updated ${fmtDate(p.lastUpdate)}</span></div><div class="finance-wrap"><div><div class="donut" style="--pct:${pct}%"><div class="center"><strong>${pct}%</strong><span>budget utilized</span></div></div><div class="progress gold"><span style="width:${pct}%"></span></div></div><div><h3 style="margin:5px 0 18px;font-size:15px">Spend by category</h3><div class="spend-bars">${categorySpend.map(e=>`<div class="spend-item"><span>${escapeHtml(e.cat)}</span><div class="spend-track"><span style="width:${Math.round((Number(e.amount)||0)/max*100)}%"></span></div><b>${money(e.amount)}</b></div>`).join('')||'<div class="muted">No expenses entered yet.</div>'}</div></div></div></div><div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Expense ledger</h3><span class="muted">${admin?'Edit transactions and monitor client decisions':'Review project expenses and approval status'}</span></div>${admin?`<button class="btn btn-soft" id="financialAddExpenseBtn2">${svgIcon('plus')} Add expense</button>`:''}</div>${expenseTableTemplate(p,admin)}</div><div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Expense approval history</h3><span class="muted">Permanent in-app record of requests, edits, approvals, rejections, and deletions</span></div></div>${expenseHistoryTemplate(p)}</div><div class="card pad" style="margin-top:18px"><strong style="font-size:13px">Investor note</strong><p class="muted" style="font-size:12px;line-height:1.7;margin-bottom:0">New expenses are immediately reflected in Approved Project Budget and Invested to Date as requested. Client approval or non-approval is tracked separately as an acknowledgement/decision and does not erase the recorded project cost.</p></div>`;
+  const approvalPanel=pending.length?`<div class="card approval-panel" style="margin-top:18px"><div class="card-head"><div><h3>${client?'Expenses awaiting your approval':'Expenses awaiting client approval'}</h3><span class="muted">${pending.length} pending approval${pending.length===1?'':'s'} · all decisions are recorded in project history</span></div><span class="approval-badge approval-pending">${pending.length} pending</span></div><div class="approval-card-grid">${pending.map(e=>`<div class="approval-card"><div><span>${escapeHtml(localizedExpenseCategory(e.cat))}</span><strong>${money(e.amount)}</strong><small>${escapeHtml(e.vendor||'No vendor entered')} · requested ${fmtDateTime(e.approvalRequestedAt)}</small></div>${client?`<div class="approval-card-actions"><button class="btn btn-soft btn-compact" data-expense-decision="rejected" data-expense-id="${e.id}" data-expense-project="${p.id}">Not approve</button><button class="btn btn-primary btn-compact" data-expense-decision="approved" data-expense-id="${e.id}" data-expense-project="${p.id}">${svgIcon('check')} Approve</button></div>`:'<span class="approval-badge approval-pending">Waiting</span>'}</div>`).join('')}</div></div>`:'';
+  return `<div class="page-head"><div><h1>Investment & budget</h1><p>Investor-friendly visibility into budget utilization, project costs, approvals, and expense history.</p></div>${admin?`<button class="btn btn-primary" id="financialAddExpenseBtn">${svgIcon('plus')} Add expense</button>`:''}</div><div class="grid grid-3"><div class="card metric"><span class="label">Approved project budget</span><div class="value">${money(p.budget)}</div><div class="muted" style="font-size:12px">${currentLanguage==='pt'?(admin?'Orçamento autorizado atual · novas despesas atualizam este valor automaticamente':'Orçamento autorizado atual'):(admin?'Current authorized budget · new expenses update this automatically':'Current authorized budget')}</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${pct}% utilized</div></div><div class="card metric"><span class="label">Remaining capital</span><div class="value">${money(Math.max(0,p.budget-p.invested))}</div><div class="muted" style="font-size:12px">Based on current budget</div></div></div>${approvalPanel}<div class="card" style="margin-top:18px"><div class="card-head"><h3>Capital utilization</h3><span class="muted">Updated ${fmtDate(p.lastUpdate)}</span></div><div class="finance-wrap"><div><div class="donut" style="--pct:${pct}%"><div class="center"><strong>${pct}%</strong><span>budget utilized</span></div></div><div class="progress gold"><span style="width:${pct}%"></span></div></div><div><h3 style="margin:5px 0 18px;font-size:15px">Spend by category</h3><div class="spend-bars">${categorySpend.map(e=>`<div class="spend-item"><span>${escapeHtml(localizedExpenseCategory(e.cat))}</span><div class="spend-track"><span style="width:${Math.round((Number(e.amount)||0)/max*100)}%"></span></div><b>${money(e.amount)}</b></div>`).join('')||'<div class="muted">No expenses entered yet.</div>'}</div></div></div></div><div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Expense ledger</h3><span class="muted">${admin?'Edit transactions and monitor client decisions':'Review project expenses and approval status'}</span></div>${admin?`<button class="btn btn-soft" id="financialAddExpenseBtn2">${svgIcon('plus')} Add expense</button>`:''}</div>${expenseTableTemplate(p,admin)}</div><div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Expense approval history</h3><span class="muted">Permanent in-app record of requests, edits, approvals, rejections, and deletions</span></div></div>${expenseHistoryTemplate(p)}</div><div class="card pad" style="margin-top:18px"><strong style="font-size:13px">Investor note</strong><p class="muted" style="font-size:12px;line-height:1.7;margin-bottom:0">New expenses are immediately reflected in Approved Project Budget and Invested to Date as requested. Client approval or non-approval is tracked separately as an acknowledgement/decision and does not erase the recorded project cost.</p></div>`;
 }
 
 function expenseTableTemplate(p,withActions=false){
   const client=currentUser()?.role==='client';
-  return `<div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Category</th><th>Vendor / payee</th><th>Notes</th><th>Amount</th><th>Client approval</th>${withActions?'<th>Actions</th>':''}</tr></thead><tbody>${p.expenses.map(e=>`<tr><td>${fmtDate(e.date)}</td><td><strong>${escapeHtml(e.cat)}</strong></td><td>${escapeHtml(e.vendor||'—')}</td><td class="wrap-cell">${escapeHtml(e.notes||'—')}</td><td><strong>${money(e.amount)}</strong></td><td><span class="approval-badge ${expenseApprovalClass(e)}">${expenseApprovalLabel(e)}</span>${e.decisionComment?`<small class="approval-comment">“${escapeHtml(e.decisionComment)}”</small>`:''}${client&&expenseApprovalStatus(e)==='pending'?`<div class="inline-decision-actions"><button class="btn btn-soft btn-compact" data-expense-decision="rejected" data-expense-id="${e.id}" data-expense-project="${p.id}">Not approve</button><button class="btn btn-primary btn-compact" data-expense-decision="approved" data-expense-id="${e.id}" data-expense-project="${p.id}">Approve</button></div>`:''}</td>${withActions?`<td><div class="action-group"><button class="icon-action" title="Edit expense" data-edit-expense="${e.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete expense" data-delete-expense="${e.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')||`<tr><td colspan="${withActions?7:6}" class="muted">No expenses have been added.</td></tr>`}</tbody></table></div>`;
+  return `<div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Category</th><th>Vendor / payee</th><th>Notes</th><th>Amount</th><th>Client approval</th>${withActions?'<th>Actions</th>':''}</tr></thead><tbody>${p.expenses.map(e=>`<tr><td>${fmtDate(e.date)}</td><td><strong>${escapeHtml(localizedExpenseCategory(e.cat))}</strong></td><td>${escapeHtml(e.vendor||'—')}</td><td class="wrap-cell">${escapeHtml(e.notes||'—')}</td><td><strong>${money(e.amount)}</strong></td><td><span class="approval-badge ${expenseApprovalClass(e)}">${expenseApprovalLabel(e)}</span>${e.decisionComment?`<small class="approval-comment">“${escapeHtml(e.decisionComment)}”</small>`:''}${client&&expenseApprovalStatus(e)==='pending'?`<div class="inline-decision-actions"><button class="btn btn-soft btn-compact" data-expense-decision="rejected" data-expense-id="${e.id}" data-expense-project="${p.id}">Not approve</button><button class="btn btn-primary btn-compact" data-expense-decision="approved" data-expense-id="${e.id}" data-expense-project="${p.id}">Approve</button></div>`:''}</td>${withActions?`<td><div class="action-group"><button class="icon-action" title="Edit expense" data-edit-expense="${e.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete expense" data-delete-expense="${e.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')||`<tr><td colspan="${withActions?7:6}" class="muted">No expenses have been added.</td></tr>`}</tbody></table></div>`;
 }
 
 function adminTemplate(){
   const users=state.users.filter(u=>u.role==='client');
   return `<div class="page-head"><div><h1>Admin center</h1><p>Full editing control for client access, projects, construction phases, photos, expenses, budgets, and schedule imports.</p></div><div class="head-actions"><button class="btn btn-outline" id="newClientBtn">${svgIcon('user')} New client</button><button class="btn btn-primary" id="newProjectBtn">${svgIcon('plus')} New project</button></div></div>
   <div class="grid grid-4"><div class="card metric"><span class="label">Client accounts</span><div class="value">${users.length}</div></div><div class="card metric"><span class="label">Active projects</span><div class="value">${state.projects.length}</div></div><div class="card metric"><span class="label">Portfolio budget</span><div class="value">${money(state.projects.reduce((a,p)=>a+(Number(p.budget)||0),0))}</div></div><div class="card metric"><span class="label">Capital deployed</span><div class="value">${money(state.projects.reduce((a,p)=>a+(Number(p.invested)||0),0))}</div></div></div>
-  <div class="admin-split" style="margin-top:18px"><div class="card list-card"><div class="card-head"><h3>Projects</h3><span class="muted">Select to manage</span></div>${state.projects.map(p=>`<div class="list-item ${p.id===selectedProjectId?'active':''}" data-admin-project="${p.id}"><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.address)} · ${p.completion}% complete</span></div>`).join('')||'<div class="empty">No projects yet.</div>'}</div><div class="card" id="adminEditor">${adminEditorTemplate(currentProject())}</div></div>
+  <div class="admin-split" style="margin-top:18px"><div class="card list-card"><div class="card-head"><h3>Projects</h3><span class="muted">Select to manage</span></div>${state.projects.map(p=>`<div class="list-item ${p.id===selectedProjectId?'active':''}" data-admin-project="${p.id}"><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.address)} · ${p.completion}% ${currentLanguage==='pt'?'concluído':'complete'}</span></div>`).join('')||'<div class="empty">No projects yet.</div>'}</div><div class="card" id="adminEditor">${adminEditorTemplate(currentProject())}</div></div>
   <div class="card admin-section" style="margin-top:18px"><div class="card-head"><div><h3>Client login accounts</h3><span class="muted">Edit credentials and project access assignments</span></div><button class="btn btn-soft" id="newClientBtn2">${svgIcon('user')} New client</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Email</th><th>Assigned project(s)</th><th>Role</th><th>Actions</th></tr></thead><tbody>${users.map(u=>`<tr><td><strong>${escapeHtml(u.name)}</strong></td><td>${escapeHtml(u.email)}</td><td class="wrap-cell">${u.projectIds.map(id=>state.projects.find(p=>p.id===id)?.name).filter(Boolean).map(escapeHtml).join(', ')||'None'}</td><td><span class="pill">Client</span></td><td><div class="action-group"><button class="icon-action" title="Edit client" data-edit-user="${u.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete client" data-delete-user="${u.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="5" class="muted">No client accounts yet.</td></tr>'}</tbody></table></div></div>`;
 }
 
@@ -996,15 +1209,15 @@ function adminEditorTemplate(p){
   return `<div class="card-head"><div><h3>${escapeHtml(p.name)}</h3><span class="muted">${escapeHtml(p.address)}</span></div><div class="head-actions"><button class="btn btn-soft" id="editProjectBtn">${svgIcon('edit')} Edit project</button><button class="btn btn-danger-soft" id="deleteProjectBtn">${svgIcon('trash')} Delete</button></div></div>
   <div class="pad">
     <div class="grid grid-3"><div><div class="muted mini-label">Assigned client</div><strong class="mini-value">${escapeHtml(client?.name||'Unassigned')}</strong></div><div><div class="muted mini-label">Budget</div><strong class="mini-value">${money(p.budget)}</strong></div><div><div class="muted mini-label">Completion</div><strong class="mini-value">${p.completion}%</strong></div></div><div class="progress" style="margin:18px 0 22px"><span style="width:${p.completion}%"></span></div>
-    <div class="schedule-import-box"><div class="schedule-import-icon">${svgIcon('file')}</div><div class="schedule-import-copy"><strong>Excel construction schedule</strong>${src?`<span>Synced from <b>${escapeHtml(src.fileName)}</b> on ${fmtDate(src.importedDate)} · ${src.rows} phases</span>`:'<span>No spreadsheet has been imported for this project yet.</span>'}<small>Upload this project's spreadsheet to replace or merge phases, dates, completion flags, duration, and project schedule dates.</small></div><div class="schedule-import-actions"><button class="btn btn-primary" id="importScheduleBtn">${svgIcon('upload')} ${src?'Update from Excel':'Import Excel'}</button><a class="btn btn-soft" href="Kairos_Construction_Schedule_Template.xlsx" download>Template</a>${p.scheduleBackup?'<button class="btn btn-soft" id="undoScheduleImportBtn">Undo last import</button>':''}</div></div>
+    <div class="schedule-import-box"><div class="schedule-import-icon">${svgIcon('file')}</div><div class="schedule-import-copy"><strong>Excel construction schedule</strong>${src?`<span>${currentLanguage==='pt'?`Sincronizado de <b>${escapeHtml(src.fileName)}</b> em ${fmtDate(src.importedDate)} · ${src.rows} fases`:`Synced from <b>${escapeHtml(src.fileName)}</b> on ${fmtDate(src.importedDate)} · ${src.rows} phases`}</span>`:'<span>No spreadsheet has been imported for this project yet.</span>'}<small>Upload this project's spreadsheet to replace or merge phases, dates, completion flags, duration, and project schedule dates.</small></div><div class="schedule-import-actions"><button class="btn btn-primary" id="importScheduleBtn">${svgIcon('upload')} ${src?'Update from Excel':'Import Excel'}</button><a class="btn btn-soft" href="Kairos_Construction_Schedule_Template.xlsx" download>Template</a>${p.scheduleBackup?'<button class="btn btn-soft" id="undoScheduleImportBtn">Undo last import</button>':''}</div></div>
     <div class="admin-action-row"><button class="btn btn-outline" id="addTaskBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="adminAddPhotoBtn">${svgIcon('plus')} Add photo</button><button class="btn btn-outline" id="addExpenseBtn">${svgIcon('plus')} Add expense</button></div>
   </div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project phases</h3><span class="muted">${p.tasks.length} schedule items · each phase is assigned to a broader construction category</span></div><button class="btn btn-soft" id="addTaskBtn2">${svgIcon('plus')} Add phase</button></div>
-  <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Dates</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead><tbody>${groupedTasks(p.tasks).flatMap(g=>g.items).map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong></td><td><span class="category-admin-chip">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)} → ${fmtDate(t.end)}</td><td><span class="mini-progress">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td><td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit construction phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit phase</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="7" class="muted">No construction phases yet.</td></tr>'}</tbody></table></div></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Dates</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead><tbody>${groupedTasks(p.tasks).flatMap(g=>g.items).map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong></td><td><span class="category-admin-chip">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)} → ${fmtDate(t.end)}</td><td><span class="mini-progress">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td><td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit construction phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit phase</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="7" class="muted">No construction phases yet.</td></tr>'}</tbody></table></div></div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project photos</h3><span class="muted">${p.photos.length} uploaded photos · edit title, date, phase, or replace the image</span></div><button class="btn btn-soft" id="adminAddPhotoBtn2">${svgIcon('plus')} Add photo</button></div>
-  <div class="table-wrap"><table class="table"><thead><tr><th>Photo</th><th>Title</th><th>Phase</th><th>Date</th><th>Storage</th><th>Actions</th></tr></thead><tbody>${p.photos.slice().reverse().map(ph=>`<tr><td><img class="table-thumb clickable-thumb" data-photo-open="${ph.id}" src="${ph.url}" alt="${attr(ph.title||'Project photo')}"></td><td><strong>${escapeHtml(ph.title)}</strong></td><td>${escapeHtml(ph.phase||'—')}</td><td>${fmtDate(ph.date)}</td><td><span class="storage-size">${ph.optimizedBytes?humanBytes(ph.optimizedBytes):'Legacy image'}</span></td><td><div class="action-group"><button class="icon-action" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="muted">No photos uploaded yet.</td></tr>'}</tbody></table></div></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Photo</th><th>Title</th><th>Phase</th><th>Date</th><th>Storage</th><th>Actions</th></tr></thead><tbody>${p.photos.slice().reverse().map(ph=>`<tr><td><img class="table-thumb clickable-thumb" data-photo-open="${ph.id}" src="${ph.url}" alt="${attr(ph.title||'Project photo')}"></td><td><strong>${escapeHtml(localizedPhaseName(ph.title))}</strong></td><td>${escapeHtml(ph.phase?localizedPhotoPhase(ph.phase):'—')}</td><td>${fmtDate(ph.date)}</td><td><span class="storage-size">${ph.optimizedBytes?humanBytes(ph.optimizedBytes):'Legacy image'}</span></td><td><div class="action-group"><button class="icon-action" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="muted">No photos uploaded yet.</td></tr>'}</tbody></table></div></div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project expenses</h3><span class="muted">${p.expenses.length} entries · invested total ${money(p.invested)}</span></div><button class="btn btn-soft" id="addExpenseBtn2">${svgIcon('plus')} Add expense</button></div>${expenseTableTemplate(p,true)}</div>`;
 }
@@ -1275,7 +1488,7 @@ function importPreviewHtml(parsed){
   const sample=parsed.tasks.slice(0,8);
   return `<div class="import-preview-stats"><div><strong>${st.rows}</strong><span>phases found</span></div><div><strong>${st.complete}</strong><span>marked complete</span></div><div><strong>${st.completion}%</strong><span>schedule completion</span></div><div><strong>${fmtDate(st.start)}</strong><span>first phase</span></div><div><strong>${fmtDate(st.end)}</strong><span>last phase</span></div></div>
   ${parsed.skipped?`<div class="import-warning">${parsed.skipped} row${parsed.skipped===1?' was':'s were'} skipped because a valid Start and End date could not be determined.</div>`:''}
-  <div class="table-wrap import-preview-table"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Start</th><th>End</th><th>Days</th><th>Status</th></tr></thead><tbody>${sample.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong></td><td><span class="category-inline">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${t.duration}</td><td>${taskStatusLabel(t)}</td></tr>`).join('')}</tbody></table></div>${parsed.tasks.length>sample.length?`<div class="muted import-more">Previewing 8 of ${parsed.tasks.length} phases.</div>`:''}`;
+  <div class="table-wrap import-preview-table"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Start</th><th>End</th><th>Days</th><th>Status</th></tr></thead><tbody>${sample.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong></td><td><span class="category-inline">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${t.duration}</td><td>${taskStatusLabel(t)}</td></tr>`).join('')}</tbody></table></div>${parsed.tasks.length>sample.length?`<div class="muted import-more">Previewing 8 of ${parsed.tasks.length} phases.</div>`:''}`;
 }
 function openScheduleImportModal(){
   const p=currentProject(); if(!p)return;

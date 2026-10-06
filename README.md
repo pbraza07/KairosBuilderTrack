@@ -1,4 +1,10 @@
-# Kairos Legacy Homes — Investor Project Portal v1.8
+# Kairos Legacy Homes — Investor Project Portal v1.9
+
+## v1.9 — Complete bilingual display coverage
+
+This release expands the English / Brazilian Portuguese language switcher across the full portal. In Portuguese mode, navigation, dashboards, schedule labels, Gantt/list views, admin tables, Excel synchronization messages, investment/budget helper text, approvals/history, and the standard construction phase names from the Kairos Excel schedule are translated for display.
+
+The original project data remains stored exactly as entered/imported. Changing PT/EN only changes how supported construction terminology is displayed, so switching back to English never rewrites the underlying schedule. Future spreadsheet phase names also receive best-effort construction-term translation when they use common terminology.
 
 ## Critical data-persistence fix in v1.8
 
