@@ -1,6 +1,446 @@
 const STORE_KEY = 'kairos_portal_v1';
 const SESSION_KEY = 'kairos_session_v1';
 
+const LANG_KEY = 'kairos_language_v1';
+let currentLanguage = (()=>{ try{return localStorage.getItem(LANG_KEY)==='pt'?'pt':'en';}catch{return 'en';} })();
+
+const PT_UI = Object.freeze({
+  'Investor Project Portal':'Portal do Projeto do Investidor',
+  'For Such a Time as This':'Para um tempo como este',
+  'Your home. Your investment. Completely visible.':'Sua casa. Seu investimento. Totalmente visível.',
+  'A private, investor-friendly portal for construction progress, schedules, project photos, financial visibility, and milestone updates — all in one beautifully organized place.':'Um portal privado e intuitivo para acompanhar o andamento da obra, cronogramas, fotos do projeto, informações financeiras e marcos importantes — tudo organizado em um só lugar.',
+  '24/7':'24/7',
+  'secure project visibility':'visibilidade segura do projeto',
+  '1 place':'1 lugar',
+  'schedule, photos & spend':'cronograma, fotos e custos',
+  'Private':'Privado',
+  'project-by-project access':'acesso separado por projeto',
+  'Investor Portal':'Portal do Investidor',
+  'Welcome back':'Bem-vindo de volta',
+  'Sign in to view your construction project or administer client accounts.':'Entre para acompanhar seu projeto de construção ou administrar contas de clientes.',
+  'Demo access':'Acesso de demonstração',
+  'Email address':'Endereço de e-mail',
+  'Password':'Senha',
+  'Sign in securely':'Entrar com segurança',
+  'Signing in…':'Entrando…',
+  'Shared login is enabled. Accounts created by the administrator can sign in from a phone, tablet, or another computer.':'O login compartilhado está ativado. Contas criadas pelo administrador podem entrar por celular, tablet ou outro computador.',
+  'Overview':'Visão geral',
+  'Schedule':'Cronograma',
+  'Photos':'Fotos',
+  'Investment':'Investimento',
+  'Admin Center':'Central administrativa',
+  'Project Portal':'Portal do Projeto',
+  'Administrator':'Administrador',
+  'Investor / Client':'Investidor / Cliente',
+  'Sign out':'Sair',
+  'Administrative portal':'Portal administrativo',
+  'Private client portal':'Portal privado do cliente',
+  'No project selected':'Nenhum projeto selecionado',
+  'Notifications & approvals':'Notificações e aprovações',
+  'No project is assigned to this account yet.':'Nenhum projeto foi atribuído a esta conta ainda.',
+  'Project overview':'Visão geral do projeto',
+  'A clear snapshot of schedule, construction progress, and investment activity.':'Uma visão clara do cronograma, do progresso da construção e da atividade de investimento.',
+  'View latest photos':'Ver fotos recentes',
+  'Open schedule':'Abrir cronograma',
+  'Project location':'Local do projeto',
+  'Construction start':'Início da construção',
+  'Target completion':'Previsão de conclusão',
+  'Last project update':'Última atualização do projeto',
+  'Project completion':'Conclusão do projeto',
+  'Invested to date':'Investido até o momento',
+  'Remaining budget':'Orçamento restante',
+  'Current / next phase':'Fase atual / próxima',
+  'Project Complete':'Projeto concluído',
+  'All milestones complete':'Todos os marcos concluídos',
+  'Construction phases':'Fases da construção',
+  'Latest project photos':'Fotos mais recentes do projeto',
+  'View all':'Ver todas',
+  'No photos uploaded yet.':'Nenhuma foto enviada ainda.',
+  'Complete':'Concluída',
+  'In progress':'Em andamento',
+  'Past due':'Atrasada',
+  'Upcoming':'Próxima',
+  'Construction schedule':'Cronograma da construção',
+  'Follow every construction phase and planned work from start through turnover.':'Acompanhe cada fase da construção e todo o trabalho planejado, do início à entrega.',
+  'Add phase':'Adicionar fase',
+  'Import Excel':'Importar Excel',
+  'Gantt':'Gantt',
+  'List':'Lista',
+  'No dated construction phases yet. Import a project schedule or add phases manually.':'Ainda não há fases de construção com datas. Importe um cronograma do projeto ou adicione as fases manualmente.',
+  'Phases are automatically grouped by their broader construction scope. Admins can change the category on any individual phase.':'As fases são agrupadas automaticamente conforme o escopo mais amplo da construção. O administrador pode alterar a categoria de qualquer fase individualmente.',
+  'Phase / trade':'Fase / especialidade',
+  'Phases are automatically grouped into the broader category that best matches the work.':'As fases são agrupadas automaticamente na categoria geral que melhor corresponde ao trabalho.',
+  'Code':'Código',
+  'Phase':'Fase',
+  'Start':'Início',
+  'Finish':'Término',
+  'End':'Término',
+  'Days':'Dias',
+  'Progress':'Progresso',
+  'Status':'Status',
+  'Actions':'Ações',
+  'Edit phase':'Editar fase',
+  'Edit':'Editar',
+  'Delete phase':'Excluir fase',
+  'Project photos':'Fotos do projeto',
+  'Progress documentation organized by project and phase. Select any photo to enlarge it, move through the gallery, or download a copy.':'Documentação do progresso organizada por projeto e fase. Selecione qualquer foto para ampliá-la, navegar pela galeria ou baixar uma cópia.',
+  'Add photo':'Adicionar foto',
+  'No photos have been uploaded for this project yet.':'Nenhuma foto foi enviada para este projeto ainda.',
+  'Project update':'Atualização do projeto',
+  'Click to enlarge':'Clique para ampliar',
+  'Download photo':'Baixar foto',
+  'Edit photo':'Editar foto',
+  'Delete photo':'Excluir foto',
+  'Close':'Fechar',
+  'Previous photo':'Foto anterior',
+  'Next photo':'Próxima foto',
+  'Download':'Baixar',
+  'Investment & budget':'Investimento e orçamento',
+  'Investor-friendly visibility into budget utilization, project costs, approvals, and expense history.':'Visibilidade clara para o investidor sobre utilização do orçamento, custos do projeto, aprovações e histórico de despesas.',
+  'Add expense':'Adicionar despesa',
+  'Approved project budget':'Orçamento aprovado do projeto',
+  'Current authorized budget':'Orçamento autorizado atual',
+  'new expenses update this automatically':'novas despesas atualizam isso automaticamente',
+  'Remaining capital':'Capital restante',
+  'Based on current budget':'Com base no orçamento atual',
+  'Expenses awaiting your approval':'Despesas aguardando sua aprovação',
+  'Expenses awaiting client approval':'Despesas aguardando aprovação do cliente',
+  'all decisions are recorded in project history':'todas as decisões são registradas no histórico do projeto',
+  'No vendor entered':'Nenhum fornecedor informado',
+  'Not approve':'Não aprovar',
+  'Approve':'Aprovar',
+  'Waiting':'Aguardando',
+  'Capital utilization':'Utilização de capital',
+  'budget utilized':'orçamento utilizado',
+  'Spend by category':'Gastos por categoria',
+  'No expenses entered yet.':'Nenhuma despesa registrada ainda.',
+  'Expense ledger':'Registro de despesas',
+  'Edit transactions and monitor client decisions':'Edite transações e acompanhe as decisões do cliente',
+  'Review project expenses and approval status':'Revise as despesas do projeto e o status de aprovação',
+  'Expense approval history':'Histórico de aprovação de despesas',
+  'Permanent in-app record of requests, edits, approvals, rejections, and deletions':'Registro permanente no portal de solicitações, edições, aprovações, recusas e exclusões',
+  'Investor note':'Nota ao investidor',
+  'New expenses are immediately reflected in Approved Project Budget and Invested to Date as requested. Client approval or non-approval is tracked separately as an acknowledgement/decision and does not erase the recorded project cost.':'Novas despesas são refletidas imediatamente no Orçamento Aprovado do Projeto e no Investido até o Momento. A aprovação ou não aprovação do cliente é registrada separadamente como confirmação/decisão e não elimina o custo registrado do projeto.',
+  'Date':'Data',
+  'Category':'Categoria',
+  'Vendor / payee':'Fornecedor / favorecido',
+  'Notes':'Observações',
+  'Amount':'Valor',
+  'Client approval':'Aprovação do cliente',
+  'Pending client approval':'Aguardando aprovação do cliente',
+  'Approved':'Aprovada',
+  'Not approved':'Não aprovada',
+  'No client approval required':'Aprovação do cliente não necessária',
+  'No expenses have been added.':'Nenhuma despesa foi adicionada.',
+  'Recent expense activity':'Atividade recente de despesas',
+  'No expense approvals are waiting.':'Nenhuma aprovação de despesa está pendente.',
+  'No expense history yet.':'Ainda não há histórico de despesas.',
+  'No expense history has been recorded yet.':'Ainda não há histórico de despesas registrado.',
+  'Approve expense':'Aprovar despesa',
+  'Do not approve expense':'Não aprovar despesa',
+  'Comment (optional)':'Comentário (opcional)',
+  'Add a note for the builder or project record':'Adicione uma observação para o construtor ou para o registro do projeto',
+  'Cancel':'Cancelar',
+  'Approve expense':'Aprovar despesa',
+  'Expense activity':'Atividade de despesa',
+  'System':'Sistema',
+  'Admin center':'Central administrativa',
+  'Full editing control for client access, projects, construction phases, photos, expenses, budgets, and schedule imports.':'Controle completo para editar acesso de clientes, projetos, fases de construção, fotos, despesas, orçamentos e importações de cronograma.',
+  'New client':'Novo cliente',
+  'New project':'Novo projeto',
+  'Client accounts':'Contas de clientes',
+  'Active projects':'Projetos ativos',
+  'Portfolio budget':'Orçamento do portfólio',
+  'Capital deployed':'Capital investido',
+  'Projects':'Projetos',
+  'Select to manage':'Selecione para gerenciar',
+  'No projects yet.':'Ainda não há projetos.',
+  'Client login accounts':'Contas de acesso dos clientes',
+  'Edit credentials and project access assignments':'Edite credenciais e permissões de acesso aos projetos',
+  'Client':'Cliente',
+  'Email':'E-mail',
+  'Assigned project(s)':'Projeto(s) atribuído(s)',
+  'Role':'Função',
+  'None':'Nenhum',
+  'No client accounts yet.':'Ainda não há contas de clientes.',
+  'Create a project to begin.':'Crie um projeto para começar.',
+  'Edit project':'Editar projeto',
+  'Delete':'Excluir',
+  'Assigned client':'Cliente atribuído',
+  'Unassigned':'Não atribuído',
+  'Budget':'Orçamento',
+  'Completion':'Conclusão',
+  'Excel construction schedule':'Cronograma de construção em Excel',
+  'No spreadsheet has been imported for this project yet.':'Nenhuma planilha foi importada para este projeto ainda.',
+  "Upload this project's spreadsheet to replace or merge phases, dates, completion flags, duration, and project schedule dates.":'Envie a planilha deste projeto para substituir ou mesclar fases, datas, indicadores de conclusão, duração e datas do cronograma.',
+  'Update from Excel':'Atualizar pelo Excel',
+  'Template':'Modelo',
+  'Undo last import':'Desfazer última importação',
+  'Project phases':'Fases do projeto',
+  'Project photos':'Fotos do projeto',
+  'Storage':'Armazenamento',
+  'Legacy image':'Imagem anterior',
+  'Project expenses':'Despesas do projeto',
+  'Edit construction phase':'Editar fase da construção',
+  'Delete construction phase':'Excluir fase da construção',
+  'Create client login':'Criar acesso de cliente',
+  'Edit client login':'Editar acesso do cliente',
+  'Client / investor name':'Nome do cliente / investidor',
+  'New password (optional)':'Nova senha (opcional)',
+  'Temporary password':'Senha temporária',
+  'Leave blank to keep current password':'Deixe em branco para manter a senha atual',
+  'Project access':'Acesso aos projetos',
+  'Create a project first, then assign access here.':'Crie um projeto primeiro e depois atribua o acesso aqui.',
+  'A client only sees projects checked here. Assigning a project to this client makes them the primary client for that project.':'O cliente vê apenas os projetos marcados aqui. Ao atribuir um projeto a este cliente, ele se torna o cliente principal desse projeto.',
+  'Save client':'Salvar cliente',
+  'Create account':'Criar conta',
+  'Edit project':'Editar projeto',
+  'Create project':'Criar projeto',
+  'Project name':'Nome do projeto',
+  'Address':'Endereço',
+  'Primary client':'Cliente principal',
+  'Project status':'Status do projeto',
+  'Start date':'Data de início',
+  'Target completion date':'Data prevista de conclusão',
+  'Approved budget':'Orçamento aprovado',
+  'Invested to date':'Investido até o momento',
+  'Completion %':'Conclusão %',
+  'Project summary':'Resumo do projeto',
+  'Save project':'Salvar projeto',
+  'Add construction phase':'Adicionar fase da construção',
+  'Edit construction phase':'Editar fase da construção',
+  'Phase code':'Código da fase',
+  'Phase name':'Nome da fase',
+  'Broader construction category':'Categoria geral da construção',
+  'Auto-detect from phase name':'Detectar automaticamente pelo nome da fase',
+  'Start date':'Data de início',
+  'Finish date':'Data de término',
+  'Duration (days)':'Duração (dias)',
+  'Progress %':'Progresso %',
+  'Trade / responsible party':'Especialidade / responsável',
+  'Optional':'Opcional',
+  'Phase notes':'Observações da fase',
+  'Optional investor-facing update or admin note':'Atualização opcional para o investidor ou observação administrativa',
+  'Save phase changes':'Salvar alterações da fase',
+  'Add project photo':'Adicionar foto do projeto',
+  'Edit project photo':'Editar foto do projeto',
+  'Current image':'Imagem atual',
+  'Photo title':'Título da foto',
+  'Project phase':'Fase do projeto',
+  'Replace image (optional)':'Substituir imagem (opcional)',
+  'Image file':'Arquivo de imagem',
+  'Leave empty to keep the current image.':'Deixe em branco para manter a imagem atual.',
+  'Select a photo to see its storage optimization.':'Selecione uma foto para ver a otimização de armazenamento.',
+  'No replacement selected; the existing image will be kept.':'Nenhuma substituição selecionada; a imagem atual será mantida.',
+  'Save photo':'Salvar foto',
+  'Optimize & upload photo':'Otimizar e enviar foto',
+  'Edit project expense':'Editar despesa do projeto',
+  'Add project expense':'Adicionar despesa do projeto',
+  'Automatic financial update + client approval':'Atualização financeira automática + aprovação do cliente',
+  'Category':'Categoria',
+  'Amount':'Valor',
+  'Vendor / payee':'Fornecedor / favorecido',
+  'Contractor or supplier':'Empreiteiro ou fornecedor',
+  'Notes':'Observações',
+  'Invoice, draw, scope, or payment note':'Fatura, liberação, escopo ou observação de pagamento',
+  'Save expense & request approval':'Salvar despesa e solicitar aprovação',
+  'Add expense & request approval':'Adicionar despesa e solicitar aprovação',
+  'Import Excel schedule':'Importar cronograma do Excel',
+  "Update this project's construction phases from Excel":'Atualize as fases de construção deste projeto pelo Excel',
+  'Excel schedule file':'Arquivo do cronograma em Excel',
+  'Choose .xlsx or .xls file':'Escolha um arquivo .xlsx ou .xls',
+  'Expected columns: ID #, Title, Complete, Duration, Start, End':'Colunas esperadas: ID #, Title, Complete, Duration, Start, End',
+  'Import behavior':'Comportamento da importação',
+  'Replace schedule with spreadsheet':'Substituir o cronograma pela planilha',
+  'Merge / update matching phase codes':'Mesclar / atualizar códigos de fases correspondentes',
+  'Update project start, target completion, and completion % from spreadsheet':'Atualizar início do projeto, conclusão prevista e % de conclusão pela planilha',
+  'How it works':'Como funciona',
+  'Choose a spreadsheet to preview the changes before importing.':'Escolha uma planilha para visualizar as alterações antes de importar.',
+  'Import schedule':'Importar cronograma',
+  'phases found':'fases encontradas',
+  'marked complete':'marcadas como concluídas',
+  'schedule completion':'conclusão do cronograma',
+  'first phase':'primeira fase',
+  'last phase':'última fase',
+  'No schedule table was found. The spreadsheet needs columns for Title, Start, and End. The Kairos template is supported automatically.':'Nenhuma tabela de cronograma foi encontrada. A planilha precisa ter colunas Title, Start e End. O modelo Kairos é reconhecido automaticamente.',
+  'The schedule sheet was found, but no rows had both a valid Start and End date.':'A planilha de cronograma foi encontrada, mas nenhuma linha tinha datas válidas de início e término.',
+  'Excel parser could not load. Check the internet connection and try again.':'O leitor de Excel não pôde ser carregado. Verifique a conexão com a internet e tente novamente.',
+  'Restore the project schedule to the version from before the last Excel import?':'Restaurar o cronograma do projeto para a versão anterior à última importação do Excel?',
+  'Notifications & approvals':'Notificações e aprovações',
+  'Awaiting client':'Aguardando cliente',
+  'Expense approved':'Despesa aprovada',
+  'Expense marked not approved':'Despesa marcada como não aprovada',
+  'Unable to record decision':'Não foi possível registrar a decisão',
+  'Phase deleted':'Fase excluída',
+  'Photo deleted':'Foto excluída',
+  'Expense deleted; budget and invested totals adjusted':'Despesa excluída; orçamento e total investido ajustados',
+  'Client login deleted':'Acesso do cliente excluído',
+  'Project deleted':'Projeto excluído',
+  'Email already exists':'Este e-mail já existe',
+  'Previous project schedule restored':'Cronograma anterior do projeto restaurado',
+  'Finish date cannot be before the start date':'A data de término não pode ser anterior à data de início',
+  'Phase updated':'Fase atualizada',
+  'Phase added':'Fase adicionada',
+  'Photo updated and optimized':'Foto atualizada e otimizada',
+  'Photo optimized and uploaded':'Foto otimizada e enviada',
+  'Expense updated; client approval requested':'Despesa atualizada; aprovação do cliente solicitada',
+  'Expense added; client notified for approval':'Despesa adicionada; cliente notificado para aprovação',
+  'Expense updated':'Despesa atualizada',
+  'Expense added':'Despesa adicionada',
+  'Unable to upload photo':'Não foi possível enviar a foto',
+  'Unable to optimize this photo.':'Não foi possível otimizar esta foto.',
+  'Choose a photo to upload.':'Escolha uma foto para enviar.',
+  'Please select an image file.':'Selecione um arquivo de imagem.',
+  'Unable to read optimized image.':'Não foi possível ler a imagem otimizada.',
+  'This photo format could not be opened by the browser. Please use JPEG, PNG, or WebP.':'Este formato de foto não pôde ser aberto pelo navegador. Use JPEG, PNG ou WebP.',
+  'The selected photo has invalid dimensions.':'A foto selecionada tem dimensões inválidas.',
+  'Preparing photo…':'Preparando foto…',
+  'Saved on this device, but cloud sync failed. Please check your connection.':'Salvo neste dispositivo, mas a sincronização com a nuvem falhou. Verifique sua conexão.',
+  'Cloud sync failed. Your server data was not changed.':'A sincronização com a nuvem falhou. Os dados do servidor não foram alterados.',
+  'Signed in, but the old browser data could not be migrated to shared storage.':'Login realizado, mas os dados antigos do navegador não puderam ser migrados para o armazenamento compartilhado.',
+  'Pre-Construction':'Pré-construção',
+  'Punch List':'Lista de pendências',
+  'Project address / location':'Endereço / localização do projeto',
+  'Client account':'Conta do cliente',
+  'Target completion':'Previsão de conclusão',
+  'Total budget':'Orçamento total',
+  'Save changes':'Salvar alterações',
+  'Project updated':'Projeto atualizado',
+  'Project created':'Projeto criado',
+  'Client updated':'Cliente atualizado',
+  'Client account created':'Conta do cliente criada',
+  'Phase / trade name':'Nome da fase / especialidade',
+  'Leave on Auto-detect to categorize from the phase name. You can override it for any individual phase.':'Mantenha em Detecção automática para categorizar pelo nome da fase. Você pode substituir a categoria em qualquer fase individual.',
+  'Calculated from dates':'Calculado pelas datas',
+  'Responsible trade / contractor':'Especialidade / empreiteiro responsável',
+  'Changes made here update this individual phase only and sync to the assigned client.':'As alterações feitas aqui atualizam somente esta fase e são sincronizadas com o cliente atribuído.',
+  'Add a single phase manually. Excel imports can still replace or merge the full schedule later.':'Adicione uma fase manualmente. As importações do Excel ainda podem substituir ou mesclar o cronograma completo depois.',
+  'Framing, HVAC, Exterior…':'Estrutura, HVAC, Exterior…',
+  'Kairos automatically resizes and compresses each upload to WebP when supported. The target is about 350 KB per photo, with a 1,600 px maximum edge and a quality floor designed to keep construction details clear.':'O Kairos redimensiona e comprime automaticamente cada envio para WebP quando compatível. A meta é cerca de 350 KB por foto, com dimensão máxima de 1.600 px e um limite de qualidade pensado para manter os detalhes da construção nítidos.',
+  'Leave empty to keep the current image. Kairos automatically resizes and compresses each upload to WebP when supported. The target is about 350 KB per photo, with a 1,600 px maximum edge and a quality floor designed to keep construction details clear.':'Deixe em branco para manter a imagem atual. O Kairos redimensiona e comprime automaticamente cada envio para WebP quando compatível. A meta é cerca de 350 KB por foto, com dimensão máxima de 1.600 px e um limite de qualidade pensado para manter os detalhes da construção nítidos.',
+  'Windows / Exterior':'Janelas / Exterior',
+  'Changing this amount adjusts both':'Alterar este valor ajusta',
+  'Adding this expense increases both':'Adicionar esta despesa aumenta',
+  'and':'e',
+  'by the amount difference. The assigned client will receive a portal notification to Approve or Not approve this expense. Editing a previously decided expense requests approval again.':'pela diferença do valor. O cliente atribuído receberá uma notificação no portal para Aprovar ou Não aprovar esta despesa. Editar uma despesa já decidida solicitará aprovação novamente.',
+  'The assigned client will receive a portal notification to Approve or Not approve this expense. Editing a previously decided expense requests approval again.':'O cliente atribuído receberá uma notificação no portal para Aprovar ou Não aprovar esta despesa. Editar uma despesa já decidida solicitará aprovação novamente.',
+  'Assign a client to this project to enable approval notifications.':'Atribua um cliente a este projeto para ativar notificações de aprovação.',
+  'Select the spreadsheet belonging to':'Selecione a planilha pertencente a',
+  'The importer finds the schedule headers automatically, including the format in your provided template.':'O importador identifica automaticamente os cabeçalhos do cronograma, incluindo o formato do modelo fornecido.',
+  'The Title prefix such as':'O prefixo do Title, como',
+  'becomes phase code':'torna-se o código da fase',
+  'Each row is also auto-assigned to the broader construction category that best matches the work. Complete = TRUE becomes 100% complete. Incomplete tasks are classified as upcoming, in progress, or past due from their dates.':'Cada linha também é atribuída automaticamente à categoria geral da construção que melhor corresponde ao trabalho. Complete = TRUE torna-se 100% concluída. Tarefas incompletas são classificadas como próximas, em andamento ou atrasadas conforme as datas.',
+  'Unable to read this spreadsheet.':'Não foi possível ler esta planilha.',
+  'Unable to sign in':'Não foi possível entrar',
+  'Expense added — approval requested':'Despesa adicionada — aprovação solicitada',
+  'Expense updated — approval requested':'Despesa atualizada — aprovação solicitada',
+  'Expense deleted':'Despesa excluída',
+  'New expense requires approval':'Nova despesa requer aprovação',
+  'Expense updated — approval requested':'Despesa atualizada — aprovação solicitada',
+  'Language':'Idioma',
+  'English':'Inglês',
+  'A modern Florida residence progressing through exterior enclosure and rough-in trades.':'Uma residência moderna na Flórida avançando pela etapa de fechamento externo e instalações preliminares.',
+  'Pre-construction planning, procurement, and permitting for a clean contemporary single-family home.':'Planejamento de pré-construção, compras e licenciamento para uma residência unifamiliar contemporânea.',
+  'In Construction':'Em construção',
+  'Planning':'Planejamento',
+  'Completed':'Concluído',
+  'On Hold':'Em espera',
+  'Pre-Construction, Design & Permitting':'Pré-construção, projeto e licenciamento',
+  'Site Preparation & Temporary Services':'Preparação do terreno e serviços temporários',
+  'Foundation & Underground':'Fundação e infraestrutura subterrânea',
+  'Structure & Framing':'Estrutura e armação',
+  'Building Envelope & Exterior':'Envoltória da edificação e exterior',
+  'MEP Rough-In & Utilities':'Instalações MEP e utilidades',
+  'Insulation & Drywall':'Isolamento e drywall',
+  'Septic, Well & Water Systems':'Sistemas sépticos, poço e água',
+  'Interior Finishes':'Acabamentos internos',
+  'Site Improvements & Landscaping':'Melhorias externas e paisagismo',
+  'Testing, Startup & Punch':'Testes, ativação e pendências',
+  'Final Inspections & Turnover':'Inspeções finais e entrega',
+  'Other / General':'Outros / Geral'
+});
+
+const PT_DYNAMIC = [
+  [/^(\d+) of (\d+) completed$/,'$1 de $2 concluídas'],
+  [/^(\d+) construction categories$/,'$1 categorias de construção'],
+  [/^(\d+) phase$/,'$1 fase'],
+  [/^(\d+) phases$/,'$1 fases'],
+  [/^(\d+) pending$/,'$1 pendente(s)'],
+  [/^(\d+) pending approval$/,'$1 aprovação pendente'],
+  [/^(\d+) pending approvals$/,'$1 aprovações pendentes'],
+  [/^(\d+) pending approval · all decisions are recorded in project history$/,'$1 aprovação pendente · todas as decisões são registradas no histórico do projeto'],
+  [/^(\d+) pending approvals · all decisions are recorded in project history$/,'$1 aprovações pendentes · todas as decisões são registradas no histórico do projeto'],
+  [/^(\d+)% of project budget$/,'$1% do orçamento do projeto'],
+  [/^(\d+)% utilized$/,'$1% utilizado'],
+  [/^Total budget (.+)$/,'Orçamento total $1'],
+  [/^Updated (.+)$/,'Atualizado em $1'],
+  [/^requested (.+)$/,'solicitado em $1'],
+  [/^Requested (.+)$/,'Solicitado em $1'],
+  [/^Last Excel sync:$/,'Última sincronização com Excel:'],
+  [/^Schedule synced (.+) from Excel$/,'Cronograma sincronizado em $1 pelo Excel'],
+  [/^ · (\d+) phases$/,' · $1 fases'],
+  [/^(\d+) schedule items · each phase is assigned to a broader construction category$/,'$1 itens do cronograma · cada fase é atribuída a uma categoria geral da construção'],
+  [/^(\d+) uploaded photos · edit title, date, phase, or replace the image$/,'$1 fotos enviadas · edite título, data, fase ou substitua a imagem'],
+  [/^(\d+) entries · invested total (.+)$/,'$1 lançamentos · total investido $2'],
+  [/^Synced from (.+) on (.+) · (\d+) phases$/,'Sincronizado de $1 em $2 · $3 fases'],
+  [/^(\d+) row was skipped because a valid Start and End date could not be determined\.$/,'$1 linha foi ignorada porque não foi possível determinar datas válidas de início e término.'],
+  [/^(\d+) rows were skipped because a valid Start and End date could not be determined\.$/,'$1 linhas foram ignoradas porque não foi possível determinar datas válidas de início e término.'],
+  [/^Previewing 8 of (\d+) phases\.$/,'Visualizando 8 de $1 fases.'],
+  [/^Found schedule on worksheet “(.+)”\. Review the preview below, then import\.$/,'Cronograma encontrado na planilha “$1”. Revise a prévia abaixo e depois importe.'],
+  [/^Reading (.+)…$/,'Lendo $1…'],
+  [/^Original: (.+)\. Ready to optimize when you save\.$/,'Original: $1. Pronta para otimizar ao salvar.'],
+  [/^Optimizing photo… (.+)$/,'Otimizando foto… $1'],
+  [/^Reducing dimensions… (.+)$/,'Reduzindo dimensões… $1'],
+  [/^Optimized (.+) → (.+) \((\d+)% smaller\) · (.+)$/,'Otimizada $1 → $2 ($3% menor) · $4'],
+  [/^Current optimized size: (.+)\.$/,'Tamanho otimizado atual: $1.'],
+  [/^Import Excel schedule · (.+)$/,'Importar cronograma do Excel · $1'],
+  [/^Open (.+)$/,'Abrir $1'],
+  [/^Delete construction phase "(.+)"\?$/,'Excluir a fase de construção "$1"?'],
+  [/^Delete photo "(.+)"\?$/,'Excluir a foto "$1"?'],
+  [/^Delete expense "(.+)" for (.+)\?$/,'Excluir a despesa "$1" no valor de $2?'],
+  [/^Delete client login "(.+)"\? Their project data will remain, but access will be removed\.$/,'Excluir o acesso do cliente "$1"? Os dados do projeto permanecerão, mas o acesso será removido.'],
+  [/^Delete project "(.+)" and all of its phases, photos, and expenses\? This cannot be undone in this browser\.$/,'Excluir o projeto "$1" e todas as suas fases, fotos e despesas? Isso não poderá ser desfeito neste navegador.'],
+  [/^(\d+) expense is waiting for your approval$/,'$1 despesa aguarda sua aprovação'],
+  [/^(\d+) expenses are waiting for your approval$/,'$1 despesas aguardam sua aprovação'],
+  [/^(\d+) expense is waiting for client approval$/,'$1 despesa aguarda aprovação do cliente'],
+  [/^(\d+) expenses are waiting for client approval$/,'$1 despesas aguardam aprovação do cliente']
+];
+
+function localeCode(){ return currentLanguage==='pt'?'pt-BR':'en-US'; }
+function translateVisibleText(value){
+  if(currentLanguage!=='pt' || value===null || value===undefined) return String(value??'');
+  const original=String(value), trimmed=original.trim();
+  if(!trimmed) return original;
+  let translated=PT_UI[trimmed];
+  if(translated===undefined){
+    translated=trimmed;
+    for(const [pattern,replacement] of PT_DYNAMIC){ if(pattern.test(trimmed)){ translated=trimmed.replace(pattern,replacement); break; } }
+  }
+  if(translated===trimmed)return original;
+  const lead=original.match(/^\s*/)?.[0]||'', tail=original.match(/\s*$/)?.[0]||'';
+  return lead+translated+tail;
+}
+function applyLanguage(root=document){
+  document.documentElement.lang=currentLanguage==='pt'?'pt-BR':'en';
+  document.title=currentLanguage==='pt'?'Kairos Legacy Homes | Portal do Investidor':'Kairos Legacy Homes | Investor Portal';
+  if(currentLanguage!=='pt')return;
+  const target=root instanceof Document?root.documentElement:root;
+  if(!target)return;
+  const walker=document.createTreeWalker(target,NodeFilter.SHOW_TEXT);
+  const nodes=[]; while(walker.nextNode())nodes.push(walker.currentNode);
+  nodes.forEach(node=>{const next=translateVisibleText(node.nodeValue);if(next!==node.nodeValue)node.nodeValue=next;});
+  if(target.querySelectorAll){
+    target.querySelectorAll('[placeholder],[title],[aria-label]').forEach(el=>{
+      ['placeholder','title','aria-label'].forEach(a=>{if(el.hasAttribute(a))el.setAttribute(a,translateVisibleText(el.getAttribute(a)));});
+    });
+  }
+}
+function brazilFlag(){return `<svg viewBox="0 0 28 20" aria-hidden="true"><rect width="28" height="20" rx="2" fill="#169B62"/><path d="M14 2.8 25 10 14 17.2 3 10Z" fill="#FFDF00"/><circle cx="14" cy="10" r="4.25" fill="#002776"/><path d="M10.3 9.3c2.5-.7 5.1-.35 7.4.9" fill="none" stroke="#fff" stroke-width=".75" stroke-linecap="round"/></svg>`;}
+function usFlag(){return `<svg viewBox="0 0 28 20" aria-hidden="true"><defs><clipPath id="usClip"><rect width="28" height="20" rx="2"/></clipPath></defs><g clip-path="url(#usClip)"><rect width="28" height="20" fill="#fff"/><path d="M0 0h28v1.55H0zm0 3.08h28v1.55H0zm0 3.08h28v1.55H0zm0 3.08h28v1.55H0zm0 3.08h28v1.55H0zm0 3.08h28v1.55H0zm0 3.08h28V20H0z" fill="#B22234"/><rect width="12.2" height="10.8" fill="#3C3B6E"/><g fill="#fff"><circle cx="1.5" cy="1.45" r=".42"/><circle cx="4" cy="1.45" r=".42"/><circle cx="6.5" cy="1.45" r=".42"/><circle cx="9" cy="1.45" r=".42"/><circle cx="11" cy="1.45" r=".42"/><circle cx="2.7" cy="3.4" r=".42"/><circle cx="5.2" cy="3.4" r=".42"/><circle cx="7.7" cy="3.4" r=".42"/><circle cx="10.2" cy="3.4" r=".42"/><circle cx="1.5" cy="5.35" r=".42"/><circle cx="4" cy="5.35" r=".42"/><circle cx="6.5" cy="5.35" r=".42"/><circle cx="9" cy="5.35" r=".42"/><circle cx="11" cy="5.35" r=".42"/><circle cx="2.7" cy="7.3" r=".42"/><circle cx="5.2" cy="7.3" r=".42"/><circle cx="7.7" cy="7.3" r=".42"/><circle cx="10.2" cy="7.3" r=".42"/><circle cx="1.5" cy="9.25" r=".42"/><circle cx="4" cy="9.25" r=".42"/><circle cx="6.5" cy="9.25" r=".42"/><circle cx="9" cy="9.25" r=".42"/><circle cx="11" cy="9.25" r=".42"/></g></g></svg>`;}
+function languageSwitcher(extra=''){return `<div class="language-switcher ${extra}" role="group" aria-label="Language"><button type="button" class="language-flag ${currentLanguage==='pt'?'active':''}" data-language="pt" title="Português (Brasil)" aria-label="Português (Brasil)" aria-pressed="${currentLanguage==='pt'}">${brazilFlag()}<span>PT</span></button><button type="button" class="language-flag ${currentLanguage==='en'?'active':''}" data-language="en" title="English" aria-label="English" aria-pressed="${currentLanguage==='en'}">${usFlag()}<span>EN</span></button></div>`;}
+function bindLanguageSwitchers(root=document){root.querySelectorAll?.('[data-language]').forEach(btn=>btn.onclick=()=>{const lang=btn.dataset.language==='pt'?'pt':'en';if(lang===currentLanguage)return;currentLanguage=lang;try{localStorage.setItem(LANG_KEY,currentLanguage);}catch{}render();});}
+function confirmLocalized(message){return window.confirm(translateVisibleText(message));}
+
 const svgIcon = (name) => {
   const icons = {
     home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10.5V20h14v-9.5"/><path d="M9.5 20v-6h5v6"/></svg>',
@@ -15,7 +455,10 @@ const svgIcon = (name) => {
     upload:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 13v6h14v-6"/></svg>',
     file:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>',
     edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4l11-11-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>',
-    trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="m7 7 1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></svg>'
+    trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="m7 7 1 13h8l1-13"/><path d="M10 11v5M14 11v5"/></svg>',
+    download:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>',
+    check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>',
+    close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg>'
   }; return icons[name] || '';
 };
 
@@ -140,9 +583,13 @@ function normalizeState(raw){
     p.tasks=Array.isArray(p.tasks)?p.tasks:[];
     p.photos=Array.isArray(p.photos)?p.photos:[];
     p.expenses=Array.isArray(p.expenses)?p.expenses:[];
+    p.expenseHistory=Array.isArray(p.expenseHistory)?p.expenseHistory:[];
+    p.notifications=Array.isArray(p.notifications)?p.notifications:[];
     p.tasks=p.tasks.map(t=>({...t,id:t.id||uid('t'),code:t.code??'',name:t.name||'Untitled phase',category:t.category||inferPhaseCategory(t.name||'',t.code||''),progress:Number(t.progress)||0,duration:Number(t.duration)||daysBetweenInclusive(t.start,t.end),trade:t.trade||'',notes:t.notes||''}));
     p.photos=p.photos.map(ph=>({...ph,id:ph.id||uid('ph'),title:ph.title||'Project photo',date:ph.date||todayISO(),phase:ph.phase||'',url:ph.url||'',mime:ph.mime||'',optimizedBytes:Number(ph.optimizedBytes||ph.bytes)||0,originalBytes:Number(ph.originalBytes)||0,width:Number(ph.width)||0,height:Number(ph.height)||0,originalName:ph.originalName||''}));
-    p.expenses=p.expenses.map(e=>({...e,id:e.id||uid('ex'),cat:e.cat||'Other',amount:Number(e.amount)||0,date:e.date||'',vendor:e.vendor||'',notes:e.notes||''}));
+    p.expenses=p.expenses.map(e=>({...e,id:e.id||uid('ex'),cat:e.cat||'Other',amount:Number(e.amount)||0,date:e.date||'',vendor:e.vendor||'',notes:e.notes||'',approvalStatus:e.approvalStatus||'not_required',approvalRequestedAt:e.approvalRequestedAt||'',approvalRequestedBy:e.approvalRequestedBy||'',decisionAt:e.decisionAt||'',decisionBy:e.decisionBy||'',decisionComment:e.decisionComment||''}));
+    p.expenseHistory=p.expenseHistory.map(h=>({...h,id:h.id||uid('eh'),at:h.at||new Date().toISOString(),action:h.action||'Expense activity',actorName:h.actorName||'System',amount:Number(h.amount)||0,category:h.category||'',status:h.status||''}));
+    p.notifications=p.notifications.map(n=>({...n,id:n.id||uid('nt'),type:n.type||'expense_approval',createdAt:n.createdAt||new Date().toISOString(),status:n.status||'pending'}));
   });
   return data;
 }
@@ -156,31 +603,33 @@ async function apiJson(path,options={}){
   return body;
 }
 function saveLocalState(){ localStorage.setItem(STORE_KEY,JSON.stringify(state)); }
-function saveState(){
+function saveState(intent={}){
   saveLocalState();
   if(currentUser()?.role!=='admin' || !session?.token) return Promise.resolve({localOnly:true});
   const snapshot=deepClone(state);
   sharedSyncPending=true;
-  sharedSyncChain=sharedSyncChain.catch(()=>null).then(()=>apiJson('/api/state',{method:'PUT',body:JSON.stringify({state:snapshot})})).then(result=>{
+  sharedSyncChain=sharedSyncChain.catch(()=>null).then(()=>apiJson('/api/state',{method:'PUT',body:JSON.stringify({state:snapshot,intent})})).then(result=>{
     sharedSyncPending=false; sharedSyncErrorShown=false;
-    // Passwords are processed by the server and should not remain in browser storage.
+    // The server is authoritative. It protects records that were not explicitly deleted,
+    // so always refresh this browser from the committed server response after a save.
+    if(result?.state) state=normalizeState(result.state);
     state.users.forEach(u=>{ if(Object.prototype.hasOwnProperty.call(u,'password')) delete u.password; });
     saveLocalState();
     return result;
   }).catch(err=>{
     sharedSyncPending=false;
     if(err.status===401){ session=null; sessionStorage.removeItem(SESSION_KEY); }
-    if(!sharedSyncErrorShown){ sharedSyncErrorShown=true; setTimeout(()=>toast('Saved on this device, but cloud sync failed. Please check your connection.'),50); }
+    if(!sharedSyncErrorShown){ sharedSyncErrorShown=true; setTimeout(()=>toast(err.message||'Cloud sync failed. Your server data was not changed.'),50); }
     return {error:err.message};
   });
   return sharedSyncChain;
 }
 function loadSession(){ try{return JSON.parse(sessionStorage.getItem(SESSION_KEY)) || null}catch{return null} }
 function saveSession(){ sessionStorage.setItem(SESSION_KEY,JSON.stringify(session)); }
-function money(n){ return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0)); }
-function fmtDate(s){ if(!s)return '—'; return new Date(s+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function money(n){ return new Intl.NumberFormat(localeCode(),{style:'currency',currency:'USD',maximumFractionDigits:0}).format(Number(n||0)); }
+function fmtDate(s){ if(!s)return '—'; return new Date(s+'T12:00:00').toLocaleDateString(localeCode(),{month:'short',day:'numeric',year:'numeric'}); }
 function initials(name){return name.split(/\s|&/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase()}
-function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=translateVisibleText(msg);t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200); }
 function uid(prefix='id'){ return prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7); }
 function todayISO(){ const d=new Date(); const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
 
@@ -277,18 +726,93 @@ function currentUser(){ return state.users.find(u=>u.id===session?.userId); }
 function accessibleProjects(){ const u=currentUser(); if(!u)return[]; return u.role==='admin'?state.projects:state.projects.filter(p=>u.projectIds.includes(p.id)); }
 function currentProject(){ const list=accessibleProjects(); if(!selectedProjectId || !list.some(p=>p.id===selectedProjectId)) selectedProjectId=list[0]?.id || null; return list.find(p=>p.id===selectedProjectId) || null; }
 
+function nowISO(){ return new Date().toISOString(); }
+function fmtDateTime(s){ if(!s)return '—'; const d=new Date(s); if(Number.isNaN(d.getTime()))return '—'; return d.toLocaleString(localeCode(),{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}); }
+function expenseApprovalStatus(e){ return e?.approvalStatus || 'not_required'; }
+function expenseApprovalLabel(e){ return ({pending:'Pending client approval',approved:'Approved',rejected:'Not approved',not_required:'No client approval required'})[expenseApprovalStatus(e)] || 'No client approval required'; }
+function expenseApprovalClass(e){ return ({pending:'approval-pending',approved:'approval-approved',rejected:'approval-rejected',not_required:'approval-neutral'})[expenseApprovalStatus(e)] || 'approval-neutral'; }
+function addExpenseHistory(p,entry={}){
+  p.expenseHistory=Array.isArray(p.expenseHistory)?p.expenseHistory:[];
+  p.expenseHistory.push({id:uid('eh'),at:nowISO(),actorId:currentUser()?.id||'',actorName:currentUser()?.name||'System',...entry});
+  if(p.expenseHistory.length>500)p.expenseHistory=p.expenseHistory.slice(-500);
+}
+function requestExpenseApproval(p,expense,{edited=false}={}){
+  if(!p.clientId){
+    expense.approvalStatus='not_required'; expense.approvalRequestedAt=''; expense.approvalRequestedBy=''; expense.decisionAt=''; expense.decisionBy=''; expense.decisionComment='';
+    return false;
+  }
+  expense.approvalStatus='pending'; expense.approvalRequestedAt=nowISO(); expense.approvalRequestedBy=currentUser()?.id||''; expense.decisionAt=''; expense.decisionBy=''; expense.decisionComment='';
+  p.notifications=Array.isArray(p.notifications)?p.notifications:[];
+  p.notifications.filter(n=>n.expenseId===expense.id && n.status==='pending').forEach(n=>n.status='superseded');
+  p.notifications.push({id:uid('nt'),type:'expense_approval',expenseId:expense.id,targetUserId:p.clientId,status:'pending',createdAt:nowISO(),title:edited?'Expense updated — approval requested':'New expense requires approval',message:`${expense.cat} · ${money(expense.amount)}`});
+  return true;
+}
+function pendingApprovalCount(){
+  const u=currentUser(); if(!u)return 0;
+  return accessibleProjects().reduce((sum,p)=>sum+p.expenses.filter(e=>expenseApprovalStatus(e)==='pending' && (u.role==='admin' || p.clientId===u.id)).length,0);
+}
+function pendingApprovalItems(){
+  const u=currentUser(); if(!u)return [];
+  const items=[];
+  accessibleProjects().forEach(p=>p.expenses.forEach(e=>{if(expenseApprovalStatus(e)==='pending' && (u.role==='admin'||p.clientId===u.id))items.push({project:p,expense:e});}));
+  return items.sort((a,b)=>String(b.expense.approvalRequestedAt||b.expense.date||'').localeCompare(String(a.expense.approvalRequestedAt||a.expense.date||'')));
+}
+function expenseHistoryItems(){
+  const out=[]; accessibleProjects().forEach(p=>(p.expenseHistory||[]).forEach(h=>out.push({project:p,history:h})));
+  return out.sort((a,b)=>String(b.history.at||'').localeCompare(String(a.history.at||'')));
+}
+function safeDownloadName(ph){
+  const base=String(ph?.title||ph?.originalName||'project-photo').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,80)||'project-photo';
+  const mime=String(ph?.mime||''); const ext=mime.includes('webp')?'webp':mime.includes('png')?'png':mime.includes('svg')?'svg':'jpg'; return `${base}.${ext}`;
+}
+function downloadProjectPhoto(photoId){
+  const ph=currentProject()?.photos.find(x=>x.id===photoId); if(!ph?.url)return;
+  const a=document.createElement('a'); a.href=ph.url; a.download=safeDownloadName(ph); document.body.appendChild(a); a.click(); a.remove();
+}
+function openPhotoLightbox(photoId){
+  const p=currentProject(); if(!p)return;
+  const photos=p.photos.slice().reverse(); let index=photos.findIndex(x=>x.id===photoId); if(index<0)return;
+  const wrap=document.createElement('div'); wrap.className='photo-lightbox'; wrap.setAttribute('role','dialog'); wrap.setAttribute('aria-modal','true');
+  wrap.innerHTML=`<div class="lightbox-stage"><button class="lightbox-close" aria-label="Close">${svgIcon('close')}</button><button class="lightbox-nav prev" aria-label="Previous photo">‹</button><img class="lightbox-image" alt=""><button class="lightbox-nav next" aria-label="Next photo">›</button><div class="lightbox-footer"><div><strong class="lightbox-title"></strong><span class="lightbox-meta"></span></div><button class="btn btn-lightbox-download">${svgIcon('download')} Download</button></div></div>`;
+  document.body.appendChild(wrap); applyLanguage(wrap); document.body.classList.add('lightbox-open');
+  const img=wrap.querySelector('.lightbox-image'),title=wrap.querySelector('.lightbox-title'),meta=wrap.querySelector('.lightbox-meta'),prev=wrap.querySelector('.prev'),next=wrap.querySelector('.next'),dl=wrap.querySelector('.btn-lightbox-download');
+  const draw=()=>{const ph=photos[index];img.src=ph.url;img.alt=ph.title||'Project photo';title.textContent=ph.title||'Project photo';meta.textContent=`${ph.phase||translateVisibleText('Project update')} · ${fmtDate(ph.date)} · ${index+1} ${currentLanguage==='pt'?'de':'of'} ${photos.length}`;prev.disabled=photos.length<2;next.disabled=photos.length<2;dl.onclick=()=>downloadProjectPhoto(ph.id);};
+  const close=()=>{document.removeEventListener('keydown',keys);document.body.classList.remove('lightbox-open');wrap.remove();};
+  const move=delta=>{index=(index+delta+photos.length)%photos.length;draw();};
+  const keys=e=>{if(e.key==='Escape')close();if(e.key==='ArrowLeft'&&photos.length>1)move(-1);if(e.key==='ArrowRight'&&photos.length>1)move(1);};
+  wrap.querySelector('.lightbox-close').onclick=close; prev.onclick=()=>move(-1); next.onclick=()=>move(1); wrap.onclick=e=>{if(e.target===wrap)close();}; document.addEventListener('keydown',keys); draw();
+}
+function notificationCenterTemplate(){
+  const u=currentUser(),pending=pendingApprovalItems(),history=expenseHistoryItems().slice(0,12);
+  return `<div class="notification-summary"><strong>${pending.length}</strong><span>${pending.length===1?'expense is':'expenses are'} waiting for ${u?.role==='client'?'your':'client'} approval</span></div><div class="notification-list">${pending.map(({project,expense})=>`<div class="notification-card"><div class="notification-icon">${svgIcon('money')}</div><div class="notification-copy"><strong>${escapeHtml(expense.cat)}</strong><span>${escapeHtml(project.name)} · ${money(expense.amount)}</span><small>Requested ${fmtDateTime(expense.approvalRequestedAt)}</small></div>${u?.role==='client'?`<div class="notification-actions"><button class="btn btn-soft btn-compact" data-expense-decision="rejected" data-expense-id="${expense.id}" data-expense-project="${project.id}">Not approve</button><button class="btn btn-primary btn-compact" data-expense-decision="approved" data-expense-id="${expense.id}" data-expense-project="${project.id}">${svgIcon('check')} Approve</button></div>`:'<span class="approval-badge approval-pending">Awaiting client</span>'}</div>`).join('')||'<div class="empty compact-empty">No expense approvals are waiting.</div>'}</div><div class="notification-history-head"><strong>Recent expense activity</strong></div><div class="notification-history">${history.map(({project,history:h})=>`<div><span class="history-dot ${h.status==='approved'?'ok':h.status==='rejected'?'no':''}"></span><p><strong>${escapeHtml(h.action||'Expense activity')}</strong><small>${escapeHtml(project.name)} · ${escapeHtml(h.category||'Expense')} ${h.amount?`· ${money(h.amount)}`:''}<br>${escapeHtml(h.actorName||'System')} · ${fmtDateTime(h.at)}</small></p></div>`).join('')||'<div class="muted">No expense history yet.</div>'}</div>`;
+}
+function openNotificationCenter(){
+  modal('Notifications & approvals',notificationCenterTemplate(),(w,close)=>{w.querySelectorAll('[data-expense-decision]').forEach(b=>b.onclick=()=>{const projectId=b.dataset.expenseProject,expenseId=b.dataset.expenseId,decision=b.dataset.expenseDecision;close();openExpenseDecisionModal(projectId,expenseId,decision);});});
+}
+function openExpenseDecisionModal(projectId,expenseId,decision){
+  const p=accessibleProjects().find(x=>x.id===projectId),ex=p?.expenses.find(x=>x.id===expenseId); if(!p||!ex)return;
+  const approving=decision==='approved';
+  modal(approving?'Approve expense':'Do not approve expense',`<form id="expenseDecisionForm"><div class="decision-expense"><span>${escapeHtml(ex.cat)}</span><strong>${money(ex.amount)}</strong><small>${escapeHtml(p.name)}${ex.vendor?` · ${escapeHtml(ex.vendor)}`:''}</small></div><div class="field"><label>Comment (optional)</label><textarea class="textarea" name="comment" placeholder="Add a note for the builder or project record"></textarea></div><div class="form-actions"><button type="button" class="btn btn-soft" id="cancelDecision">Cancel</button><button class="btn ${approving?'btn-primary':'btn-danger-soft'}">${approving?'Approve expense':'Not approve'}</button></div></form>`,(w,close)=>{w.querySelector('#cancelDecision').onclick=close;w.querySelector('#expenseDecisionForm').onsubmit=async e=>{e.preventDefault();const btn=e.submitter||w.querySelector('button[type="submit"]');if(btn)btn.disabled=true;try{const f=new FormData(e.target);const result=await apiJson('/api/expense-decision',{method:'POST',body:JSON.stringify({projectId,expenseId,decision,comment:String(f.get('comment')||'').trim()})});state=normalizeState(result.state);saveLocalState();close();render();toast(approving?'Expense approved':'Expense marked not approved');}catch(err){toast(err.message||'Unable to record decision');if(btn)btn.disabled=false;}};});
+}
+function expenseHistoryTemplate(p){
+  const rows=(p.expenseHistory||[]).slice().sort((a,b)=>String(b.at||'').localeCompare(String(a.at||''))).slice(0,40);
+  return `<div class="expense-history-list">${rows.map(h=>`<div class="expense-history-row"><span class="history-dot ${h.status==='approved'?'ok':h.status==='rejected'?'no':''}"></span><div><strong>${escapeHtml(h.action||'Expense activity')}</strong><span>${escapeHtml(h.category||'Expense')} ${h.amount?`· ${money(h.amount)}`:''}${h.details?` · ${escapeHtml(h.details)}`:''}</span></div><div><strong>${escapeHtml(h.actorName||'System')}</strong><span>${fmtDateTime(h.at)}</span></div></div>`).join('')||'<div class="empty compact-empty">No expense history has been recorded yet.</div>'}</div>`;
+}
+
 function render(){
   const root=document.getElementById('app');
-  if(!session || !currentUser()){ root.innerHTML=loginTemplate(); bindLogin(); return; }
+  if(!session || !currentUser()){ root.innerHTML=loginTemplate(); applyLanguage(root); bindLogin(); bindLanguageSwitchers(root); return; }
   currentProject();
   root.innerHTML=shellTemplate();
+  applyLanguage(root);
   bindShell();
+  bindLanguageSwitchers(root);
   renderView();
 }
 
 function logoMark(){ return `<div class="brand-mark"><svg viewBox="0 0 40 40" fill="none"><path d="M7 19 20 8l13 11v13H7V19Z" stroke="currentColor" stroke-width="2.4"/><path d="M15 32V21h10v11" stroke="currentColor" stroke-width="2.4"/><circle cx="20" cy="16" r="3.2" stroke="#c7a14a" stroke-width="2"/></svg></div>`; }
 
-function loginTemplate(){ return `<div class="auth-shell">
+function loginTemplate(){ return `<div class="auth-shell">${languageSwitcher('auth-language')}
   <section class="auth-visual">
     <div class="brand">${logoMark()}<div class="brand-copy"><strong>Kairos Legacy Homes</strong><span>Investor Project Portal</span></div></div>
     <div class="auth-hero"><div class="auth-kicker">For Such a Time as This</div><h1>Your home. Your investment. Completely visible.</h1><p>A private, investor-friendly portal for construction progress, schedules, project photos, financial visibility, and milestone updates — all in one beautifully organized place.</p></div>
@@ -310,7 +834,7 @@ function bindLogin(){
     const email=document.getElementById('email').value.trim().toLowerCase();
     const password=document.getElementById('password').value;
     const btn=e.target.querySelector('button[type="submit"]');
-    btn.disabled=true; btn.textContent='Signing in…';
+    btn.disabled=true; btn.textContent=translateVisibleText('Signing in…');
     const localSnapshot=deepClone(state);
     try{
       const result=await apiJson('/api/login',{method:'POST',body:JSON.stringify({email,password})});
@@ -331,7 +855,7 @@ function bindLogin(){
       currentView='overview'; render();
     }catch(err){
       toast(err.message||'Unable to sign in');
-      btn.disabled=false; btn.textContent='Sign in securely';
+      btn.disabled=false; btn.textContent=translateVisibleText('Sign in securely');
     }
   });
 }
@@ -354,23 +878,25 @@ async function boot(){
   }
 }
 
-function shellTemplate(){ const u=currentUser(),p=currentProject(); const items=[['overview','home','Overview'],['schedule','schedule','Schedule'],['photos','photos','Photos'],['financials','money','Investment']]; if(u.role==='admin')items.push(['admin','admin','Admin Center']); return `<div class="shell">
+function shellTemplate(){ const u=currentUser(),p=currentProject(); const items=[['overview','home','Overview'],['schedule','schedule','Schedule'],['photos','photos','Photos'],['financials','money','Investment']]; if(u.role==='admin')items.push(['admin','admin','Admin Center']); const notices=pendingApprovalCount(); return `<div class="shell">
 <aside class="sidebar" id="sidebar"><div class="side-brand">${logoMark()}<div><strong>Kairos Legacy Homes</strong><small>Project Portal</small></div></div><nav class="nav">${items.map(([v,i,l])=>`<button data-view="${v}" class="${currentView===v?'active':''}">${svgIcon(i)}<span>${l}</span></button>`).join('')}</nav><div class="side-footer"><div class="user-mini"><div class="avatar">${initials(u.name)}</div><div><strong>${u.name}</strong><span>${u.role==='admin'?'Administrator':'Investor / Client'}</span></div></div><button class="logout" id="logoutBtn">Sign out</button></div></aside>
-<main class="main"><header class="topbar"><div class="top-left"><button class="mobile-menu" id="mobileMenu">${svgIcon('menu')}</button><div class="crumb"><small>${u.role==='admin'?'Administrative portal':'Private client portal'}</small><strong>${p?.name || 'No project selected'}</strong></div></div><div class="top-actions">${accessibleProjects().length?`<select class="project-switch" id="projectSwitch">${accessibleProjects().map(x=>`<option value="${x.id}" ${x.id===selectedProjectId?'selected':''}>${x.name}</option>`).join('')}</select>`:''}<button class="icon-btn" title="Notifications">${svgIcon('bell')}</button></div></header><section class="content" id="view"></section></main></div>`; }
+<main class="main"><header class="topbar"><div class="top-left"><button class="mobile-menu" id="mobileMenu">${svgIcon('menu')}</button><div class="crumb"><small>${u.role==='admin'?'Administrative portal':'Private client portal'}</small><strong>${p?.name || 'No project selected'}</strong></div></div><div class="top-actions">${accessibleProjects().length?`<select class="project-switch" id="projectSwitch">${accessibleProjects().map(x=>`<option value="${x.id}" ${x.id===selectedProjectId?'selected':''}>${x.name}</option>`).join('')}</select>`:''}<button class="icon-btn notification-button" id="notificationBtn" title="Notifications & approvals">${svgIcon('bell')}${notices?`<span class="notification-badge">${notices>99?'99+':notices}</span>`:''}</button>${languageSwitcher('top-language')}</div></header><section class="content" id="view"></section></main></div>`; }
 
 function bindShell(){
   document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{currentView=b.dataset.view;document.getElementById('sidebar').classList.remove('open');render();});
   document.getElementById('logoutBtn').onclick=logout;
   document.getElementById('mobileMenu').onclick=()=>document.getElementById('sidebar').classList.toggle('open');
   const sw=document.getElementById('projectSwitch'); if(sw)sw.onchange=e=>{selectedProjectId=e.target.value;currentView=currentView==='admin'?'admin':'overview';render();};
+  const nb=document.getElementById('notificationBtn'); if(nb)nb.onclick=async()=>{try{const result=await apiJson('/api/state',{method:'GET'});state=normalizeState(result.state);saveLocalState();}catch{}openNotificationCenter();};
 }
 
-function renderView(){ const host=document.getElementById('view'); const p=currentProject(); if(!p && currentView!=='admin'){host.innerHTML='<div class="card empty">No project is assigned to this account yet.</div>';return}
+function renderView(){ const host=document.getElementById('view'); const p=currentProject(); if(!p && currentView!=='admin'){host.innerHTML='<div class="card empty">No project is assigned to this account yet.</div>';applyLanguage(host);return}
   if(currentView==='overview') host.innerHTML=overviewTemplate(p);
   if(currentView==='schedule') host.innerHTML=scheduleTemplate(p);
   if(currentView==='photos') host.innerHTML=photosTemplate(p);
   if(currentView==='financials') host.innerHTML=financialTemplate(p);
   if(currentView==='admin') host.innerHTML=adminTemplate();
+  applyLanguage(host);
   bindView();
 }
 
@@ -417,7 +943,7 @@ function ganttTemplate(p){
     }).join('');
     return `<div class="gantt-category-row" style="grid-template-columns:${template}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} phase${group.items.length===1?'':'s'}</span></div><div class="gantt-category-line"></div></div>${groupRows}`;
   }).join('');
-  return `<div class="schedule-category-summary"><strong>${groups.length} construction categories</strong><span>Phases are automatically grouped by their broader construction scope. Admins can change the category on any individual phase.</span></div><div class="timeline"><div class="gantt" style="min-width:${minWidth}px"><div class="gantt-head" style="grid-template-columns:${template}"><div>Phase / trade</div>${months.map(m=>`<div>${m.toLocaleDateString('en-US',{month:'short',year:'2-digit'})}</div>`).join('')}</div>${rows}</div></div>`;
+  return `<div class="schedule-category-summary"><strong>${groups.length} construction categories</strong><span>Phases are automatically grouped by their broader construction scope. Admins can change the category on any individual phase.</span></div><div class="timeline"><div class="gantt" style="min-width:${minWidth}px"><div class="gantt-head" style="grid-template-columns:${template}"><div>Phase / trade</div>${months.map(m=>`<div>${m.toLocaleDateString(localeCode(),{month:'short',year:'2-digit'})}</div>`).join('')}</div>${rows}</div></div>`;
 }
 function listScheduleTemplate(p){
   const admin=currentUser().role==='admin';
@@ -429,10 +955,10 @@ function listScheduleTemplate(p){
 
 function photosTemplate(p){
   const admin=currentUser().role==='admin';
-  return `<div class="page-head"><div><h1>Project photos</h1><p>Progress documentation organized by project and phase.</p></div>${admin?`<button class="btn btn-primary" id="addPhotoBtn">${svgIcon('plus')} Add photo</button>`:''}</div><div class="card"><div class="gallery">${p.photos.slice().reverse().map(ph=>photoCard(ph,admin)).join('')||'<div class="empty">No photos have been uploaded for this project yet.</div>'}</div></div>`;
+  return `<div class="page-head"><div><h1>Project photos</h1><p>Progress documentation organized by project and phase. Select any photo to enlarge it, move through the gallery, or download a copy.</p></div>${admin?`<button class="btn btn-primary" id="addPhotoBtn">${svgIcon('plus')} Add photo</button>`:''}</div><div class="card"><div class="gallery">${p.photos.slice().reverse().map(ph=>photoCard(ph,admin)).join('')||'<div class="empty">No photos have been uploaded for this project yet.</div>'}</div></div>`;
 }
 function photoCard(ph,admin=false){
-  return `<div class="photo"><img src="${ph.url}" alt="${escapeHtml(ph.title)}"><div class="photo-overlay"><strong>${escapeHtml(ph.title)}</strong><span>${escapeHtml(ph.phase||'Project update')} · ${fmtDate(ph.date)}</span></div>${admin?`<div class="photo-admin-actions"><button class="icon-action light" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action light danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div>`:''}</div>`;
+  return `<div class="photo photo-clickable" data-photo-open="${ph.id}" tabindex="0" role="button" aria-label="Open ${attr(ph.title||'project photo')}"><img src="${ph.url}" alt="${escapeHtml(ph.title)}"><div class="photo-overlay"><strong>${escapeHtml(ph.title)}</strong><span>${escapeHtml(ph.phase||'Project update')} · ${fmtDate(ph.date)}</span><small>Click to enlarge</small></div><div class="photo-view-actions"><button class="icon-action light" title="Download photo" data-download-photo="${ph.id}">${svgIcon('download')}</button>${admin?`<button class="icon-action light" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action light danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button>`:''}</div></div>`;
 }
 
 function aggregateExpenseCategories(expenses=[]){
@@ -441,15 +967,18 @@ function aggregateExpenseCategories(expenses=[]){
   return [...map.entries()].map(([cat,amount])=>({cat,amount})).sort((a,b)=>b.amount-a.amount);
 }
 function financialTemplate(p){
-  const admin=currentUser().role==='admin';
+  const admin=currentUser().role==='admin',client=!admin;
   const pct=p.budget?Math.min(100,Math.round((p.invested/p.budget)*100)):0;
   const categorySpend=aggregateExpenseCategories(p.expenses);
   const max=Math.max(...categorySpend.map(e=>Number(e.amount)||0),1);
-  return `<div class="page-head"><div><h1>Investment & budget</h1><p>Investor-friendly visibility into budget utilization and project cost categories.</p></div>${admin?`<button class="btn btn-primary" id="financialAddExpenseBtn">${svgIcon('plus')} Add expense</button>`:''}</div><div class="grid grid-3"><div class="card metric"><span class="label">Approved project budget</span><div class="value">${money(p.budget)}</div><div class="muted" style="font-size:12px">Current authorized budget${admin?' · approved expenses update this automatically':''}</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${pct}% utilized</div></div><div class="card metric"><span class="label">Remaining capital</span><div class="value">${money(Math.max(0,p.budget-p.invested))}</div><div class="muted" style="font-size:12px">Based on current budget</div></div></div><div class="card" style="margin-top:18px"><div class="card-head"><h3>Capital utilization</h3><span class="muted">Updated ${fmtDate(p.lastUpdate)}</span></div><div class="finance-wrap"><div><div class="donut" style="--pct:${pct}%"><div class="center"><strong>${pct}%</strong><span>budget utilized</span></div></div><div class="progress gold"><span style="width:${pct}%"></span></div></div><div><h3 style="margin:5px 0 18px;font-size:15px">Spend by category</h3><div class="spend-bars">${categorySpend.map(e=>`<div class="spend-item"><span>${escapeHtml(e.cat)}</span><div class="spend-track"><span style="width:${Math.round((Number(e.amount)||0)/max*100)}%"></span></div><b>${money(e.amount)}</b></div>`).join('')||'<div class="muted">No expenses entered yet.</div>'}</div></div></div></div>${admin?`<div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Expense ledger</h3><span class="muted">Edit or remove individual transactions</span></div><button class="btn btn-soft" id="financialAddExpenseBtn2">${svgIcon('plus')} Add expense</button></div>${expenseTableTemplate(p,true)}</div>`:''}<div class="card pad" style="margin-top:18px"><strong style="font-size:13px">Investor note</strong><p class="muted" style="font-size:12px;line-height:1.7;margin-bottom:0">This dashboard is designed for transparency and project tracking. Production deployment can also include invoice documents, draw requests, payment history, change orders, and lender-specific reporting.</p></div>`;
+  const pending=p.expenses.filter(e=>expenseApprovalStatus(e)==='pending');
+  const approvalPanel=pending.length?`<div class="card approval-panel" style="margin-top:18px"><div class="card-head"><div><h3>${client?'Expenses awaiting your approval':'Expenses awaiting client approval'}</h3><span class="muted">${pending.length} pending approval${pending.length===1?'':'s'} · all decisions are recorded in project history</span></div><span class="approval-badge approval-pending">${pending.length} pending</span></div><div class="approval-card-grid">${pending.map(e=>`<div class="approval-card"><div><span>${escapeHtml(e.cat)}</span><strong>${money(e.amount)}</strong><small>${escapeHtml(e.vendor||'No vendor entered')} · requested ${fmtDateTime(e.approvalRequestedAt)}</small></div>${client?`<div class="approval-card-actions"><button class="btn btn-soft btn-compact" data-expense-decision="rejected" data-expense-id="${e.id}" data-expense-project="${p.id}">Not approve</button><button class="btn btn-primary btn-compact" data-expense-decision="approved" data-expense-id="${e.id}" data-expense-project="${p.id}">${svgIcon('check')} Approve</button></div>`:'<span class="approval-badge approval-pending">Waiting</span>'}</div>`).join('')}</div></div>`:'';
+  return `<div class="page-head"><div><h1>Investment & budget</h1><p>Investor-friendly visibility into budget utilization, project costs, approvals, and expense history.</p></div>${admin?`<button class="btn btn-primary" id="financialAddExpenseBtn">${svgIcon('plus')} Add expense</button>`:''}</div><div class="grid grid-3"><div class="card metric"><span class="label">Approved project budget</span><div class="value">${money(p.budget)}</div><div class="muted" style="font-size:12px">Current authorized budget${admin?' · new expenses update this automatically':''}</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${pct}% utilized</div></div><div class="card metric"><span class="label">Remaining capital</span><div class="value">${money(Math.max(0,p.budget-p.invested))}</div><div class="muted" style="font-size:12px">Based on current budget</div></div></div>${approvalPanel}<div class="card" style="margin-top:18px"><div class="card-head"><h3>Capital utilization</h3><span class="muted">Updated ${fmtDate(p.lastUpdate)}</span></div><div class="finance-wrap"><div><div class="donut" style="--pct:${pct}%"><div class="center"><strong>${pct}%</strong><span>budget utilized</span></div></div><div class="progress gold"><span style="width:${pct}%"></span></div></div><div><h3 style="margin:5px 0 18px;font-size:15px">Spend by category</h3><div class="spend-bars">${categorySpend.map(e=>`<div class="spend-item"><span>${escapeHtml(e.cat)}</span><div class="spend-track"><span style="width:${Math.round((Number(e.amount)||0)/max*100)}%"></span></div><b>${money(e.amount)}</b></div>`).join('')||'<div class="muted">No expenses entered yet.</div>'}</div></div></div></div><div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Expense ledger</h3><span class="muted">${admin?'Edit transactions and monitor client decisions':'Review project expenses and approval status'}</span></div>${admin?`<button class="btn btn-soft" id="financialAddExpenseBtn2">${svgIcon('plus')} Add expense</button>`:''}</div>${expenseTableTemplate(p,admin)}</div><div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Expense approval history</h3><span class="muted">Permanent in-app record of requests, edits, approvals, rejections, and deletions</span></div></div>${expenseHistoryTemplate(p)}</div><div class="card pad" style="margin-top:18px"><strong style="font-size:13px">Investor note</strong><p class="muted" style="font-size:12px;line-height:1.7;margin-bottom:0">New expenses are immediately reflected in Approved Project Budget and Invested to Date as requested. Client approval or non-approval is tracked separately as an acknowledgement/decision and does not erase the recorded project cost.</p></div>`;
 }
 
 function expenseTableTemplate(p,withActions=false){
-  return `<div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Category</th><th>Vendor / payee</th><th>Notes</th><th>Amount</th>${withActions?'<th>Actions</th>':''}</tr></thead><tbody>${p.expenses.map(e=>`<tr><td>${fmtDate(e.date)}</td><td><strong>${escapeHtml(e.cat)}</strong></td><td>${escapeHtml(e.vendor||'—')}</td><td class="wrap-cell">${escapeHtml(e.notes||'—')}</td><td><strong>${money(e.amount)}</strong></td>${withActions?`<td><div class="action-group"><button class="icon-action" title="Edit expense" data-edit-expense="${e.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete expense" data-delete-expense="${e.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')||`<tr><td colspan="${withActions?6:5}" class="muted">No expenses have been added.</td></tr>`}</tbody></table></div>`;
+  const client=currentUser()?.role==='client';
+  return `<div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Category</th><th>Vendor / payee</th><th>Notes</th><th>Amount</th><th>Client approval</th>${withActions?'<th>Actions</th>':''}</tr></thead><tbody>${p.expenses.map(e=>`<tr><td>${fmtDate(e.date)}</td><td><strong>${escapeHtml(e.cat)}</strong></td><td>${escapeHtml(e.vendor||'—')}</td><td class="wrap-cell">${escapeHtml(e.notes||'—')}</td><td><strong>${money(e.amount)}</strong></td><td><span class="approval-badge ${expenseApprovalClass(e)}">${expenseApprovalLabel(e)}</span>${e.decisionComment?`<small class="approval-comment">“${escapeHtml(e.decisionComment)}”</small>`:''}${client&&expenseApprovalStatus(e)==='pending'?`<div class="inline-decision-actions"><button class="btn btn-soft btn-compact" data-expense-decision="rejected" data-expense-id="${e.id}" data-expense-project="${p.id}">Not approve</button><button class="btn btn-primary btn-compact" data-expense-decision="approved" data-expense-id="${e.id}" data-expense-project="${p.id}">Approve</button></div>`:''}</td>${withActions?`<td><div class="action-group"><button class="icon-action" title="Edit expense" data-edit-expense="${e.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete expense" data-delete-expense="${e.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')||`<tr><td colspan="${withActions?7:6}" class="muted">No expenses have been added.</td></tr>`}</tbody></table></div>`;
 }
 
 function adminTemplate(){
@@ -475,7 +1004,7 @@ function adminEditorTemplate(p){
   <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Dates</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead><tbody>${groupedTasks(p.tasks).flatMap(g=>g.items).map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(t.name)}</strong></td><td><span class="category-admin-chip">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)} → ${fmtDate(t.end)}</td><td><span class="mini-progress">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td><td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit construction phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit phase</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="7" class="muted">No construction phases yet.</td></tr>'}</tbody></table></div></div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project photos</h3><span class="muted">${p.photos.length} uploaded photos · edit title, date, phase, or replace the image</span></div><button class="btn btn-soft" id="adminAddPhotoBtn2">${svgIcon('plus')} Add photo</button></div>
-  <div class="table-wrap"><table class="table"><thead><tr><th>Photo</th><th>Title</th><th>Phase</th><th>Date</th><th>Storage</th><th>Actions</th></tr></thead><tbody>${p.photos.slice().reverse().map(ph=>`<tr><td><img class="table-thumb" src="${ph.url}" alt=""></td><td><strong>${escapeHtml(ph.title)}</strong></td><td>${escapeHtml(ph.phase||'—')}</td><td>${fmtDate(ph.date)}</td><td><span class="storage-size">${ph.optimizedBytes?humanBytes(ph.optimizedBytes):'Legacy image'}</span></td><td><div class="action-group"><button class="icon-action" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="muted">No photos uploaded yet.</td></tr>'}</tbody></table></div></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Photo</th><th>Title</th><th>Phase</th><th>Date</th><th>Storage</th><th>Actions</th></tr></thead><tbody>${p.photos.slice().reverse().map(ph=>`<tr><td><img class="table-thumb clickable-thumb" data-photo-open="${ph.id}" src="${ph.url}" alt="${attr(ph.title||'Project photo')}"></td><td><strong>${escapeHtml(ph.title)}</strong></td><td>${escapeHtml(ph.phase||'—')}</td><td>${fmtDate(ph.date)}</td><td><span class="storage-size">${ph.optimizedBytes?humanBytes(ph.optimizedBytes):'Legacy image'}</span></td><td><div class="action-group"><button class="icon-action" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="muted">No photos uploaded yet.</td></tr>'}</tbody></table></div></div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project expenses</h3><span class="muted">${p.expenses.length} entries · invested total ${money(p.invested)}</span></div><button class="btn btn-soft" id="addExpenseBtn2">${svgIcon('plus')} Add expense</button></div>${expenseTableTemplate(p,true)}</div>`;
 }
@@ -489,12 +1018,15 @@ function bindView(){
   const fe=document.getElementById('financialAddExpenseBtn'); if(fe)fe.onclick=()=>openExpenseModal();
   const fe2=document.getElementById('financialAddExpenseBtn2'); if(fe2)fe2.onclick=()=>openExpenseModal();
 
+  document.querySelectorAll('[data-photo-open]').forEach(el=>{el.onclick=e=>{if(e.target.closest('button'))return;openPhotoLightbox(el.dataset.photoOpen);};el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPhotoLightbox(el.dataset.photoOpen);}};});
+  document.querySelectorAll('[data-download-photo]').forEach(b=>b.onclick=e=>{e.stopPropagation();downloadProjectPhoto(b.dataset.downloadPhoto);});
   document.querySelectorAll('[data-edit-task]').forEach(b=>b.onclick=()=>{const t=currentProject()?.tasks.find(x=>x.id===b.dataset.editTask);if(t)openTaskModal(t);});
   document.querySelectorAll('[data-delete-task]').forEach(b=>b.onclick=()=>deleteTask(b.dataset.deleteTask));
-  document.querySelectorAll('[data-edit-photo]').forEach(b=>b.onclick=()=>{const ph=currentProject()?.photos.find(x=>x.id===b.dataset.editPhoto);if(ph)openPhotoModal(ph);});
-  document.querySelectorAll('[data-delete-photo]').forEach(b=>b.onclick=()=>deletePhoto(b.dataset.deletePhoto));
+  document.querySelectorAll('[data-edit-photo]').forEach(b=>b.onclick=e=>{e.stopPropagation();const ph=currentProject()?.photos.find(x=>x.id===b.dataset.editPhoto);if(ph)openPhotoModal(ph);});
+  document.querySelectorAll('[data-delete-photo]').forEach(b=>b.onclick=e=>{e.stopPropagation();deletePhoto(b.dataset.deletePhoto);});
   document.querySelectorAll('[data-edit-expense]').forEach(b=>b.onclick=()=>{const ex=currentProject()?.expenses.find(x=>x.id===b.dataset.editExpense);if(ex)openExpenseModal(ex);});
   document.querySelectorAll('[data-delete-expense]').forEach(b=>b.onclick=()=>deleteExpense(b.dataset.deleteExpense));
+  document.querySelectorAll('[data-expense-decision]').forEach(b=>b.onclick=()=>openExpenseDecisionModal(b.dataset.expenseProject,b.dataset.expenseId,b.dataset.expenseDecision));
 
   if(currentView==='admin') bindAdmin();
 }
@@ -525,42 +1057,50 @@ function applyExpenseFinancialDelta(p,delta){
   p.budget=Math.max(0,(Number(p.budget)||0)+change);
   p.lastUpdate=todayISO();
 }
-function deleteTask(id){
+async function adminDeleteRecord(type,id,projectId=''){
+  const result=await apiJson('/api/admin/delete',{method:'POST',body:JSON.stringify({type,id,projectId})});
+  if(result?.state){ state=normalizeState(result.state); saveLocalState(); }
+  return result;
+}
+async function deleteTask(id){
   const p=currentProject(); if(!p)return;
   const t=p.tasks.find(x=>x.id===id); if(!t)return;
-  if(!confirm(`Delete construction phase "${t.name}"?`))return;
-  p.tasks=p.tasks.filter(x=>x.id!==id); p.completion=scheduleCompletion(p.tasks); p.lastUpdate=todayISO(); saveState(); renderView(); toast('Phase deleted');
+  if(!confirmLocalized(`Delete construction phase "${t.name}"?`))return;
+  try{ await adminDeleteRecord('task',id,p.id); renderView(); toast('Phase deleted'); }
+  catch(err){ toast(err.message||'Unable to delete phase'); }
 }
-function deletePhoto(id){
+async function deletePhoto(id){
   const p=currentProject(); if(!p)return;
   const ph=p.photos.find(x=>x.id===id); if(!ph)return;
-  if(!confirm(`Delete photo "${ph.title}"?`))return;
-  p.photos=p.photos.filter(x=>x.id!==id); p.lastUpdate=todayISO(); saveState(); renderView(); toast('Photo deleted');
+  if(!confirmLocalized(`Delete photo "${ph.title}"?`))return;
+  try{ await adminDeleteRecord('photo',id,p.id); renderView(); toast('Photo deleted'); }
+  catch(err){ toast(err.message||'Unable to delete photo'); }
 }
-function deleteExpense(id){
+async function deleteExpense(id){
   const p=currentProject(); if(!p)return;
   const ex=p.expenses.find(x=>x.id===id); if(!ex)return;
-  if(!confirm(`Delete expense "${ex.cat}" for ${money(ex.amount)}?`))return;
-  p.expenses=p.expenses.filter(x=>x.id!==id); applyExpenseFinancialDelta(p,-(Number(ex.amount)||0)); saveState(); renderView(); toast('Expense deleted; budget and invested totals adjusted');
+  if(!confirmLocalized(`Delete expense "${ex.cat}" for ${money(ex.amount)}?`))return;
+  try{ await adminDeleteRecord('expense',id,p.id); renderView(); toast('Expense deleted; budget and invested totals adjusted'); }
+  catch(err){ toast(err.message||'Unable to delete expense'); }
 }
-function deleteClient(id){
+async function deleteClient(id){
   const u=state.users.find(x=>x.id===id); if(!u)return;
-  if(!confirm(`Delete client login "${u.name}"? Their project data will remain, but access will be removed.`))return;
-  state.projects.forEach(p=>{if(p.clientId===id)p.clientId='';});
-  state.users=state.users.filter(x=>x.id!==id);
-  saveState(); render(); toast('Client login deleted');
+  if(!confirmLocalized(`Delete client login "${u.name}"? Their project data will remain, but access will be removed.`))return;
+  try{ await adminDeleteRecord('client',id,''); render(); toast('Client login deleted'); }
+  catch(err){ toast(err.message||'Unable to delete client'); }
 }
 
-function deleteProject(id){
+async function deleteProject(id){
   const p=state.projects.find(x=>x.id===id); if(!p)return;
-  if(!confirm(`Delete project "${p.name}" and all of its phases, photos, and expenses? This cannot be undone in this browser.`))return;
-  state.projects=state.projects.filter(x=>x.id!==id);
-  state.users.forEach(u=>u.projectIds=(u.projectIds||[]).filter(pid=>pid!==id));
-  selectedProjectId=state.projects[0]?.id||null;
-  saveState(); render(); toast('Project deleted');
+  if(!confirmLocalized(`Delete project "${p.name}" and all of its phases, photos, and expenses? This cannot be undone in this browser.`))return;
+  try{
+    await adminDeleteRecord('project',id,'');
+    selectedProjectId=state.projects[0]?.id||null;
+    render(); toast('Project deleted');
+  }catch(err){ toast(err.message||'Unable to delete project'); }
 }
 
-function modal(title,body,onBind){ const wrap=document.createElement('div');wrap.className='modal-backdrop';wrap.innerHTML=`<div class="modal"><div class="modal-head"><h3>${title}</h3><button class="close">×</button></div><div class="modal-body">${body}</div></div>`;document.body.appendChild(wrap);const close=()=>wrap.remove();wrap.querySelector('.close').onclick=close;wrap.onclick=e=>{if(e.target===wrap)close()};onBind?.(wrap,close); }
+function modal(title,body,onBind){ const wrap=document.createElement('div');wrap.className='modal-backdrop';wrap.innerHTML=`<div class="modal"><div class="modal-head"><h3>${title}</h3><button class="close" aria-label="Close">×</button></div><div class="modal-body">${body}</div></div>`;document.body.appendChild(wrap);applyLanguage(wrap);const close=()=>wrap.remove();wrap.querySelector('.close').onclick=close;wrap.onclick=e=>{if(e.target===wrap)close()};onBind?.(wrap,close); }
 
 function openClientModal(user=null){
   const editing=!!user;
@@ -751,13 +1291,13 @@ function openScheduleImportModal(){
     fileInput.onchange=async()=>{
       file=fileInput.files?.[0]||null; parsed=null; apply.disabled=true; preview.innerHTML='';
       if(!file)return;
-      status.className='import-status loading'; status.textContent=`Reading ${file.name}…`;
+      status.className='import-status loading'; status.textContent=translateVisibleText(`Reading ${file.name}…`);
       try{
         parsed=await parseScheduleWorkbook(file);
-        status.className='import-status success'; status.textContent=`Found schedule on worksheet “${parsed.sheetName}”. Review the preview below, then import.`;
-        preview.innerHTML=importPreviewHtml(parsed); apply.disabled=false;
+        status.className='import-status success'; status.textContent=translateVisibleText(`Found schedule on worksheet “${parsed.sheetName}”. Review the preview below, then import.`);
+        preview.innerHTML=importPreviewHtml(parsed); applyLanguage(preview); apply.disabled=false;
       }catch(err){
-        status.className='import-status error'; status.textContent=err?.message||'Unable to read this spreadsheet.'; parsed=null; apply.disabled=true;
+        status.className='import-status error'; status.textContent=translateVisibleText(err?.message||'Unable to read this spreadsheet.'); parsed=null; apply.disabled=true;
       }
     };
     apply.onclick=()=>{
@@ -774,15 +1314,15 @@ function openScheduleImportModal(){
       }
       p.lastUpdate=todayISO();
       p.scheduleSource={fileName:file.name,sheetName:parsed.sheetName,importedAt:new Date().toISOString(),importedDate:todayISO(),rows:parsed.tasks.length,completed:parsed.tasks.filter(t=>taskStatus(t)==='done').length,mode};
-      saveState(); close(); render(); toast(`${parsed.tasks.length} construction phases imported`);
+      saveState(mode==='replace'?{replaceTasksFor:[p.id]}:{}); close(); render(); toast(`${parsed.tasks.length} construction phases imported`);
     };
   });
 }
 function undoLastScheduleImport(){
   const p=currentProject(); const b=p?.scheduleBackup; if(!p||!b)return;
-  if(!confirm('Restore the project schedule to the version from before the last Excel import?'))return;
+  if(!confirmLocalized('Restore the project schedule to the version from before the last Excel import?'))return;
   p.tasks=deepClone(b.tasks||[]); p.start=b.start; p.target=b.target; p.completion=b.completion; p.status=b.status; p.lastUpdate=b.lastUpdate; p.scheduleSource=b.scheduleSource?deepClone(b.scheduleSource):null; delete p.scheduleBackup;
-  saveState(); renderView(); toast('Previous project schedule restored');
+  saveState({replaceTasksFor:[p.id]}); renderView(); toast('Previous project schedule restored');
 }
 
 function openTaskModal(task=null){
@@ -831,7 +1371,7 @@ function openPhotoModal(photo=null){
   </div><div class="form-actions"><button class="btn btn-primary" id="photoSaveBtn">${editing?'Save photo':'Optimize & upload photo'}</button></div></form>`,(w,close)=>{
     const form=w.querySelector('#photoForm'),fileInput=form.querySelector('[name="file"]'),status=w.querySelector('#photoOptimizeStatus'),saveBtn=w.querySelector('#photoSaveBtn');
     let optimized=null,optimizedFileKey='';
-    const setStatus=(message,kind='')=>{status.className=`photo-optimize-status ${kind}`;status.innerHTML=`<span class="photo-opt-dot"></span><span>${message}</span>`;};
+    const setStatus=(message,kind='')=>{status.className=`photo-optimize-status ${kind}`;status.innerHTML=`<span class="photo-opt-dot"></span><span>${message}</span>`;applyLanguage(status);};
     fileInput.onchange=async()=>{
       const file=fileInput.files?.[0]||null;optimized=null;optimizedFileKey='';
       if(!file){setStatus(editing?'No replacement selected; the existing image will be kept.':'Select a photo to see its storage optimization.');return;}
@@ -873,24 +1413,37 @@ function openExpenseModal(expense=null){
   const p=currentProject(); if(!p)return;
   const editing=!!expense;
   const oldAmount=editing?(Number(expense.amount)||0):0;
-  modal(editing?'Edit project expense':'Add project expense',`<form id="expenseForm"><div class="expense-budget-note"><strong>Automatic financial update</strong><span>${editing?'Changing this amount adjusts':'Adding this expense increases'} both <b>Approved Project Budget</b> and <b>Invested to Date</b>${editing?' by the amount difference':''}. Deleting the expense reverses the same amount.</span></div><div class="form-grid">
+  modal(editing?'Edit project expense':'Add project expense',`<form id="expenseForm"><div class="expense-budget-note"><strong>Automatic financial update + client approval</strong><span>${editing?'Changing this amount adjusts':'Adding this expense increases'} both <b>Approved Project Budget</b> and <b>Invested to Date</b>${editing?' by the amount difference':''}. ${p.clientId?'The assigned client will receive a portal notification to Approve or Not approve this expense. Editing a previously decided expense requests approval again.':'Assign a client to this project to enable approval notifications.'}</span></div><div class="form-grid">
     <div class="field"><label>Category</label><input class="input" name="cat" value="${attr(expense?.cat||'')}" placeholder="Windows / Exterior" required></div>
     <div class="field"><label>Amount</label><input class="input" type="number" name="amount" min="0" step="0.01" value="${expense?.amount??''}" required></div>
     <div class="field"><label>Date</label><input class="input" type="date" name="date" value="${expense?.date||todayISO()}"></div>
     <div class="field"><label>Vendor / payee</label><input class="input" name="vendor" value="${attr(expense?.vendor||'')}" placeholder="Contractor or supplier"></div>
     <div class="field full"><label>Notes</label><textarea class="textarea" name="notes" placeholder="Invoice, draw, scope, or payment note">${escapeHtml(expense?.notes||'')}</textarea></div>
-  </div><div class="form-actions"><button class="btn btn-primary">${editing?'Save expense':'Add expense'}</button></div></form>`,(w,close)=>{
-    w.querySelector('#expenseForm').onsubmit=e=>{
+  </div><div class="form-actions"><button class="btn btn-primary">${editing?'Save expense & request approval':'Add expense & request approval'}</button></div></form>`,(w,close)=>{
+    w.querySelector('#expenseForm').onsubmit=async e=>{
       e.preventDefault(); const f=new FormData(e.target);
       const values={cat:String(f.get('cat')||'').trim(),amount:+f.get('amount')||0,date:String(f.get('date')||''),vendor:String(f.get('vendor')||'').trim(),notes:String(f.get('notes')||'').trim()};
-      if(editing)Object.assign(expense,values); else p.expenses.push({id:uid('ex'),...values});
+      let target=expense;
+      if(editing){ Object.assign(target,values); }
+      else { target={id:uid('ex'),...values}; p.expenses.push(target); }
       const delta=values.amount-oldAmount;
-      applyExpenseFinancialDelta(p,delta); saveState(); close(); renderView(); toast(editing?'Expense updated; budget and invested totals adjusted':'Expense added to approved budget and invested total');
+      applyExpenseFinancialDelta(p,delta);
+      const requested=requestExpenseApproval(p,target,{edited:editing});
+      addExpenseHistory(p,{expenseId:target.id,action:editing?'Expense updated — approval requested':requested?'Expense added — approval requested':'Expense added',category:target.cat,amount:target.amount,status:target.approvalStatus,details:target.vendor||''});
+      await saveState(); close(); renderView(); toast(requested?(editing?'Expense updated; client approval requested':'Expense added; client notified for approval'):(editing?'Expense updated':'Expense added'));
     };
   });
+}
+
+async function refreshClientState(forceRender=false){
+  if(!session?.token||currentUser()?.role!=='client'||document.hidden)return;
+  const before=pendingApprovalCount();
+  try{const result=await apiJson('/api/state',{method:'GET'});state=normalizeState(result.state);saveLocalState();const after=pendingApprovalCount();if((forceRender||before!==after)&&!document.querySelector('.modal-backdrop,.photo-lightbox'))render();}catch(err){if(err.status===401){session=null;sessionStorage.removeItem(SESSION_KEY);render();}}
 }
 
 function escapeHtml(s=''){ return String(s).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function attr(s=''){ return escapeHtml(s); }
 
+setInterval(()=>refreshClientState(false),30000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshClientState(true);});
 boot();

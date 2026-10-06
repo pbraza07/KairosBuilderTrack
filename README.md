@@ -1,4 +1,29 @@
-# Kairos Legacy Homes — Investor Project Portal v1.5
+# Kairos Legacy Homes — Investor Project Portal v1.8
+
+## Critical data-persistence fix in v1.8
+
+The previous releases could fall back to a JSON file inside the Render web-service container when `DATABASE_URL` was not configured. Render can restart/sleep/recreate that container, so browser-created clients and projects could appear to disappear after the service restarted.
+
+**v1.8 removes that risk:**
+
+- On Render, the portal will **refuse to accept logins/writes without durable storage** instead of silently saving to an ephemeral file.
+- Connect a PostgreSQL database and set `DATABASE_URL` on the Web Service.
+- Normal Admin saves are now **non-destructive merges**: a stale browser cannot erase a client, project, phase, photo, or expense simply because that record is missing from its local copy.
+- Actual deletions use a dedicated authenticated Admin deletion endpoint and only run after the Admin clicks a Delete control and confirms it.
+- Excel **Replace Schedule** remains an explicit human action and is the only normal save operation allowed to replace all phases for the selected project.
+- PostgreSQL keeps a rolling server-side backup history (up to 250 snapshots) for additional recovery protection.
+- A deletion audit is retained in server metadata.
+
+### Required Render setup
+
+If you deployed through `render.yaml` / Blueprint, `DATABASE_URL` is wired automatically to the included PostgreSQL database. If you created the Web Service manually, open **Render → your Web Service → Environment** and add `DATABASE_URL` using the connection string from your PostgreSQL database.
+
+Do **not** set `ALLOW_EPHEMERAL_STORAGE=true` in production. That override exists only for temporary development/testing.
+
+The health endpoint now reports `persistentStorage` and `writeProtection`, so `/health` can be checked before entering live client data.
+
+---
+
 
 This version fixes the previous browser-only login limitation. Client accounts and project data now use a shared server data layer. When `DATABASE_URL` is configured, the portal stores that shared data in PostgreSQL, so a client created on the Admin computer can sign in from a phone, tablet, or another computer.
 
@@ -6,7 +31,7 @@ Passwords are not stored in the browser after synchronization and are stored ser
 
 ## IMPORTANT: one-time migration for the account you already created
 
-Your older version saved users/projects only inside the browser where you created them. After deploying v1.5:
+Your older version saved users/projects only inside the browser where you created them. After deploying v1.8:
 
 1. Use the SAME desktop/browser where you originally created `pbraza@gmail...`.
 2. Open the newly deployed Render portal.
@@ -61,6 +86,38 @@ A Render Free Web Service has an ephemeral filesystem and can lose local files w
 - Project/client account editing
 - Shared cross-device logins and project data
 
+
+
+
+## v1.7 — English / Brazilian Portuguese language switcher
+
+- A compact **Brazilian flag (PT)** and **U.S. flag (EN)** now appear in the upper-right area of the portal, including the login screen.
+- Select the Brazilian flag to switch the portal interface to **Brazilian Portuguese**.
+- Select the U.S. flag to switch back to **English**.
+- The selected language is remembered on that browser/device.
+- Navigation, dashboard labels, schedules, financial screens, admin controls, modals, approval workflow, photo controls, Excel-import instructions, statuses, dates, and common system messages are localized.
+- Dates and USD currency formatting follow the selected interface locale.
+- User-entered project names, custom notes, vendor names, photo titles, and spreadsheet phase names remain exactly as entered so the language switch does not modify or overwrite project records. System construction-category labels are translated for display while their stored values remain unchanged.
+
+## v1.6 — Photo lightbox/download + client expense approvals
+
+### Project photo viewer
+- Click or tap any project photo to open a full-screen viewer.
+- Use the on-screen arrows, keyboard Left/Right arrows, or the close control to navigate the gallery.
+- Every photo can be downloaded from the viewer; gallery cards also include a download control.
+- The download is the optimized stored copy, preserving the storage-saving photo policy from v1.4.
+
+### Client expense approval workflow
+- When an administrator adds an expense to a project that has an assigned client, the expense is marked **Pending client approval**.
+- The client receives an in-portal notification badge and can choose **Approve** or **Not approve**, with an optional comment.
+- The same approval controls are available in the Investment page.
+- Editing an expense requests client approval again.
+- Approval/non-approval decisions are processed server-side so a client can only decide expenses for projects assigned to that account.
+- Expense requests, edits, approvals, non-approvals, and deletions are recorded in the **Expense approval history** inside the project.
+- The client portal refreshes shared state periodically and whenever the app returns to the foreground, so new approval requests appear without requiring a new login.
+
+### Financial behavior
+Per the requested Kairos workflow, adding an expense still immediately increases both **Approved Project Budget** and **Invested to Date**. Client approval is tracked as a separate project decision/audit status and does not remove the recorded cost. Deleting an expense reverses its amount from both totals.
 
 ## v1.5 — Construction phase categories + automatic expense totals
 

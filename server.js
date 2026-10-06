@@ -11,6 +11,8 @@ const DATA_DIR = process.env.DATA_DIR || path.join(ROOT, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'portal-state.json');
 const DATABASE_URL = process.env.DATABASE_URL || '';
 const MAX_BODY_BYTES = 50 * 1024 * 1024;
+const IS_RENDER = Boolean(process.env.RENDER || process.env.RENDER_SERVICE_ID || process.env.RENDER_EXTERNAL_HOSTNAME);
+const ALLOW_EPHEMERAL_STORAGE = String(process.env.ALLOW_EPHEMERAL_STORAGE || '').toLowerCase() === 'true';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -31,6 +33,16 @@ const MIME_TYPES = {
 let pool = null;
 let shared = null;
 let storageMode = 'file';
+
+function isPersistentStorage() {
+  return storageMode === 'postgres' || (storageMode === 'file' && Boolean(process.env.DATA_DIR));
+}
+
+function ensureWritablePersistentStorage() {
+  if (storageMode === 'blocked-ephemeral') {
+    throw Object.assign(new Error('Persistent storage is required on Render. Connect PostgreSQL and set DATABASE_URL before creating or editing portal data.'), { statusCode: 503 });
+  }
+}
 
 function passwordRecord(password, saltHex = crypto.randomBytes(16).toString('hex')) {
   const hash = crypto.scryptSync(String(password), Buffer.from(saltHex, 'hex'), 64).toString('hex');
@@ -99,6 +111,8 @@ function normalizeStoredShared(value) {
     p.tasks = Array.isArray(p.tasks) ? p.tasks : [];
     p.photos = Array.isArray(p.photos) ? p.photos : [];
     p.expenses = Array.isArray(p.expenses) ? p.expenses : [];
+    p.expenseHistory = Array.isArray(p.expenseHistory) ? p.expenseHistory : [];
+    p.notifications = Array.isArray(p.notifications) ? p.notifications : [];
   });
   return value;
 }
@@ -113,17 +127,34 @@ async function initStorage() {
       payload JSONB NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS kairos_portal_backups (
+      backup_id BIGSERIAL PRIMARY KEY,
+      payload JSONB NOT NULL,
+      reason TEXT NOT NULL DEFAULT 'save',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`);
     const row = await pool.query('SELECT payload FROM kairos_portal_state WHERE id = 1');
     if (row.rows.length) {
       shared = normalizeStoredShared(row.rows[0].payload);
-      await persistShared();
+      await persistShared('startup-normalization');
     } else {
       shared = defaultSharedState();
       await pool.query(
         'INSERT INTO kairos_portal_state (id, payload, updated_at) VALUES (1, $1::jsonb, NOW())',
         [JSON.stringify(shared)]
       );
+      await createDatabaseBackup('initial-state');
     }
+    return;
+  }
+
+  // Render's normal filesystem is ephemeral. A free service can sleep/restart and
+  // recreate the container, which makes a local JSON database disappear. Starting
+  // with v1.8 we fail closed on Render rather than accepting data that can vanish.
+  if (IS_RENDER && !process.env.DATA_DIR && !ALLOW_EPHEMERAL_STORAGE) {
+    storageMode = 'blocked-ephemeral';
+    shared = defaultSharedState();
+    console.error('Persistent storage protection: DATABASE_URL is not configured. Writes are blocked to prevent data loss.');
     return;
   }
 
@@ -136,10 +167,24 @@ async function initStorage() {
     console.error('Unable to read local shared state; using a safe default:', err.message);
     shared = defaultSharedState();
   }
-  await persistShared();
+  await persistShared('startup');
 }
 
-async function persistShared() {
+async function createDatabaseBackup(reason = 'save') {
+  if (storageMode !== 'postgres' || !pool || !shared) return;
+  await pool.query(
+    'INSERT INTO kairos_portal_backups (payload, reason, created_at) VALUES ($1::jsonb, $2, NOW())',
+    [JSON.stringify(shared), String(reason).slice(0, 120)]
+  );
+  // Keep a generous rolling safety history without allowing unlimited growth.
+  await pool.query(`DELETE FROM kairos_portal_backups
+    WHERE backup_id NOT IN (
+      SELECT backup_id FROM kairos_portal_backups ORDER BY backup_id DESC LIMIT 250
+    )`);
+}
+
+async function persistShared(reason = 'save') {
+  ensureWritablePersistentStorage();
   shared.meta = shared.meta || {};
   shared.meta.updatedAt = new Date().toISOString();
   shared.meta.storage = storageMode;
@@ -150,6 +195,7 @@ async function persistShared() {
        ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`,
       [JSON.stringify(shared)]
     );
+    await createDatabaseBackup(reason);
     return;
   }
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -267,8 +313,92 @@ function normalizeIncomingState(raw) {
     p.tasks = Array.isArray(p.tasks) ? p.tasks : [];
     p.photos = Array.isArray(p.photos) ? p.photos : [];
     p.expenses = Array.isArray(p.expenses) ? p.expenses : [];
+    p.expenseHistory = Array.isArray(p.expenseHistory) ? p.expenseHistory : [];
+    p.notifications = Array.isArray(p.notifications) ? p.notifications : [];
   });
   return { data, passwordUpdates };
+}
+
+function mergeByIdPreservingMissing(existing = [], incoming = []) {
+  const out = new Map();
+  for (const item of existing || []) if (item && item.id) out.set(item.id, item);
+  for (const item of incoming || []) if (item && item.id) out.set(item.id, item);
+  return [...out.values()];
+}
+
+function mergeIncomingStatePreservingExisting(incomingData, intent = {}) {
+  const replaceTasksFor = new Set(Array.isArray(intent.replaceTasksFor) ? intent.replaceTasksFor : []);
+  const users = mergeByIdPreservingMissing(shared.data.users || [], incomingData.users || []);
+  const projectMap = new Map((shared.data.projects || []).map(p => [p.id, p]));
+  for (const incoming of incomingData.projects || []) {
+    const old = projectMap.get(incoming.id);
+    if (!old) {
+      projectMap.set(incoming.id, incoming);
+      continue;
+    }
+    const merged = { ...old, ...incoming };
+    merged.tasks = replaceTasksFor.has(incoming.id)
+      ? (incoming.tasks || [])
+      : mergeByIdPreservingMissing(old.tasks || [], incoming.tasks || []);
+    merged.photos = mergeByIdPreservingMissing(old.photos || [], incoming.photos || []);
+    merged.expenses = mergeByIdPreservingMissing(old.expenses || [], incoming.expenses || []);
+    merged.expenseHistory = mergeByIdPreservingMissing(old.expenseHistory || [], incoming.expenseHistory || []);
+    merged.notifications = mergeByIdPreservingMissing(old.notifications || [], incoming.notifications || []);
+    projectMap.set(incoming.id, merged);
+  }
+  return { users, projects: [...projectMap.values()] };
+}
+
+function recordDeletionAudit({ type, id, projectId = '', actor }) {
+  shared.meta.deletionAudit = Array.isArray(shared.meta.deletionAudit) ? shared.meta.deletionAudit : [];
+  shared.meta.deletionAudit.push({
+    type, id, projectId, actorId: actor?.id || '', actorName: actor?.name || actor?.email || 'Administrator', at: new Date().toISOString()
+  });
+  if (shared.meta.deletionAudit.length > 500) shared.meta.deletionAudit = shared.meta.deletionAudit.slice(-500);
+}
+
+function serverScheduleCompletion(tasks = []) {
+  if (!tasks.length) return 0;
+  const weighted = tasks.reduce((sum, t) => sum + Math.max(1, Number(t.duration) || 1) * Math.max(0, Math.min(100, Number(t.progress) || 0)), 0);
+  const total = tasks.reduce((sum, t) => sum + Math.max(1, Number(t.duration) || 1), 0);
+  return total ? Math.round(weighted / total) : 0;
+}
+
+function mergeProtectedWorkflowState(incomingData) {
+  // Admin updates currently submit the full project document. Preserve client approval
+  // decisions that may have been made on another device after the Admin last loaded it.
+  for (const project of incomingData.projects) {
+    const existing = shared.data.projects.find(p => p.id === project.id);
+    if (!existing) continue;
+    project.expenseHistory = Array.isArray(project.expenseHistory) ? project.expenseHistory : [];
+    project.notifications = Array.isArray(project.notifications) ? project.notifications : [];
+    project.expenses = Array.isArray(project.expenses) ? project.expenses : [];
+
+    const historyById = new Map(project.expenseHistory.map(h => [h.id, h]));
+    for (const h of (existing.expenseHistory || [])) if (!historyById.has(h.id)) historyById.set(h.id, h);
+    project.expenseHistory = [...historyById.values()].sort((a,b) => String(a.at || '').localeCompare(String(b.at || ''))).slice(-500);
+
+    const incomingNotifications = new Map(project.notifications.map(n => [n.id, n]));
+    for (const old of (existing.notifications || [])) {
+      const inc = incomingNotifications.get(old.id);
+      if (!inc) { incomingNotifications.set(old.id, old); continue; }
+      // A resolved client notification wins over a stale pending copy from an Admin tab.
+      if (old.status !== 'pending' && inc.status === 'pending') incomingNotifications.set(old.id, old);
+    }
+    project.notifications = [...incomingNotifications.values()].slice(-500);
+
+    for (const expense of project.expenses) {
+      const old = (existing.expenses || []).find(e => e.id === expense.id);
+      if (!old) continue;
+      const sameRequest = String(expense.approvalRequestedAt || '') === String(old.approvalRequestedAt || '');
+      if (sameRequest && ['approved','rejected'].includes(old.approvalStatus)) {
+        expense.approvalStatus = old.approvalStatus;
+        expense.decisionAt = old.decisionAt || '';
+        expense.decisionBy = old.decisionBy || '';
+        expense.decisionComment = old.decisionComment || '';
+      }
+    }
+  }
 }
 
 function applyCredentialUpdates(data, passwordUpdates, { preserveAdminId = null } = {}) {
@@ -290,7 +420,8 @@ async function handleApi(req, res, pathname) {
     return sendJson(res, 200, {
       ok: true,
       sharedStorage: true,
-      persistentStorage: storageMode === 'postgres' || Boolean(process.env.DATA_DIR),
+      persistentStorage: isPersistentStorage(),
+      writeProtection: storageMode === 'blocked-ephemeral' ? 'persistent-storage-required' : null,
       storageMode,
       initialized: Boolean(shared.meta.initialized),
       updatedAt: shared.meta.updatedAt || null
@@ -298,6 +429,7 @@ async function handleApi(req, res, pathname) {
   }
 
   if (pathname === '/api/login' && req.method === 'POST') {
+    if (storageMode === 'blocked-ephemeral') return sendJson(res, 503, { error: 'Persistent database is not configured. In Render, connect PostgreSQL and set DATABASE_URL. Data entry is blocked so accounts and projects cannot disappear after a restart.' });
     const body = await readJson(req);
     const email = String(body.email || '').trim().toLowerCase();
     const password = String(body.password || '');
@@ -311,7 +443,8 @@ async function handleApi(req, res, pathname) {
       state: stateForUser(user),
       serverInitialized: Boolean(shared.meta.initialized),
       storageMode,
-      persistentStorage: storageMode === 'postgres' || Boolean(process.env.DATA_DIR),
+      persistentStorage: isPersistentStorage(),
+      writeProtection: storageMode === 'blocked-ephemeral' ? 'persistent-storage-required' : null,
       updatedAt: shared.meta.updatedAt || null
     });
   }
@@ -328,24 +461,143 @@ async function handleApi(req, res, pathname) {
       user,
       state: stateForUser(user),
       storageMode,
-      persistentStorage: storageMode === 'postgres' || Boolean(process.env.DATA_DIR),
+      persistentStorage: isPersistentStorage(),
+      writeProtection: storageMode === 'blocked-ephemeral' ? 'persistent-storage-required' : null,
       updatedAt: shared.meta.updatedAt || null
     });
   }
 
   if (pathname === '/api/state' && req.method === 'PUT') {
     if (user.role !== 'admin') return sendJson(res, 403, { error: 'Administrator access required' });
+    ensureWritablePersistentStorage();
     const body = await readJson(req);
     const { data, passwordUpdates } = normalizeIncomingState(body.state);
-    applyCredentialUpdates(data, passwordUpdates);
-    shared.data = data;
+    mergeProtectedWorkflowState(data);
+    const mergedData = mergeIncomingStatePreservingExisting(data, body.intent || {});
+    applyCredentialUpdates(mergedData, passwordUpdates);
+    shared.data = mergedData;
     shared.meta.initialized = true;
-    await persistShared();
+    await persistShared('admin-save');
     return sendJson(res, 200, { ok: true, updatedAt: shared.meta.updatedAt, state: shared.data });
+  }
+
+  if (pathname === '/api/admin/delete' && req.method === 'POST') {
+    if (user.role !== 'admin') return sendJson(res, 403, { error: 'Administrator access required' });
+    ensureWritablePersistentStorage();
+    const body = await readJson(req);
+    const type = String(body.type || '');
+    const id = String(body.id || '');
+    const projectId = String(body.projectId || '');
+    if (!id || !['task','photo','expense','client','project'].includes(type)) {
+      return sendJson(res, 400, { error: 'A valid deletion type and record ID are required' });
+    }
+
+    let changed = false;
+    if (type === 'project') {
+      const before = shared.data.projects.length;
+      shared.data.projects = shared.data.projects.filter(p => p.id !== id);
+      changed = shared.data.projects.length !== before;
+      if (changed) shared.data.users.forEach(u => { u.projectIds = (u.projectIds || []).filter(pid => pid !== id); });
+    } else if (type === 'client') {
+      const target = shared.data.users.find(u => u.id === id && u.role !== 'admin');
+      if (target) {
+        shared.data.projects.forEach(p => { if (p.clientId === id) p.clientId = ''; });
+        shared.data.users = shared.data.users.filter(u => u.id !== id);
+        delete shared.credentials[id];
+        changed = true;
+      }
+    } else {
+      const project = shared.data.projects.find(p => p.id === projectId);
+      if (!project) return sendJson(res, 404, { error: 'Project not found' });
+      if (type === 'task') {
+        const before = (project.tasks || []).length;
+        project.tasks = (project.tasks || []).filter(x => x.id !== id);
+        changed = project.tasks.length !== before;
+        if (changed) project.completion = serverScheduleCompletion(project.tasks);
+      }
+      if (type === 'photo') {
+        const before = (project.photos || []).length;
+        project.photos = (project.photos || []).filter(x => x.id !== id);
+        changed = project.photos.length !== before;
+      }
+      if (type === 'expense') {
+        const expense = (project.expenses || []).find(x => x.id === id);
+        if (expense) {
+          const amount = Number(expense.amount) || 0;
+          project.expenseHistory = Array.isArray(project.expenseHistory) ? project.expenseHistory : [];
+          project.expenseHistory.push({
+            id: `eh-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`,
+            expenseId: id,
+            action: 'Expense deleted', category: expense.cat || 'Expense', amount, status: 'deleted',
+            actorId: user.id, actorName: user.name || user.email || 'Administrator', at: new Date().toISOString(),
+            details: `Human-initiated deletion. Previous approval status: ${expense.approvalStatus || 'not_required'}`
+          });
+          project.notifications = (project.notifications || []).map(n => n.expenseId === id && n.status === 'pending' ? { ...n, status: 'cancelled', resolvedAt: new Date().toISOString() } : n);
+          project.expenses = (project.expenses || []).filter(x => x.id !== id);
+          project.invested = Math.max(0, (Number(project.invested) || 0) - amount);
+          project.budget = Math.max(0, (Number(project.budget) || 0) - amount);
+          changed = true;
+        }
+      }
+      if (changed) project.lastUpdate = new Date().toISOString().slice(0, 10);
+    }
+
+    if (!changed) return sendJson(res, 404, { error: 'Record not found or already deleted' });
+    recordDeletionAudit({ type, id, projectId, actor: user });
+    await persistShared(`human-delete:${type}`);
+    return sendJson(res, 200, { ok: true, state: stateForUser(user), updatedAt: shared.meta.updatedAt });
+  }
+
+  if (pathname === '/api/expense-decision' && req.method === 'POST') {
+    if (user.role !== 'client') return sendJson(res, 403, { error: 'Client access required for expense decisions' });
+    const body = await readJson(req);
+    const projectId = String(body.projectId || '');
+    const expenseId = String(body.expenseId || '');
+    const decision = String(body.decision || '').toLowerCase();
+    const comment = String(body.comment || '').trim().slice(0, 2000);
+    if (!['approved', 'rejected'].includes(decision)) return sendJson(res, 400, { error: 'Decision must be approved or rejected' });
+    if (!user.projectIds.includes(projectId)) return sendJson(res, 403, { error: 'You do not have access to this project' });
+    const project = shared.data.projects.find(p => p.id === projectId);
+    if (!project || project.clientId !== user.id) return sendJson(res, 403, { error: 'This project is not assigned to your account' });
+    project.expenses = Array.isArray(project.expenses) ? project.expenses : [];
+    project.expenseHistory = Array.isArray(project.expenseHistory) ? project.expenseHistory : [];
+    project.notifications = Array.isArray(project.notifications) ? project.notifications : [];
+    const expense = project.expenses.find(e => e.id === expenseId);
+    if (!expense) return sendJson(res, 404, { error: 'Expense not found' });
+    if ((expense.approvalStatus || 'not_required') !== 'pending') return sendJson(res, 409, { error: 'This expense no longer has a pending approval request' });
+    const at = new Date().toISOString();
+    expense.approvalStatus = decision;
+    expense.decisionAt = at;
+    expense.decisionBy = user.id;
+    expense.decisionComment = comment;
+    project.notifications.forEach(n => {
+      if (n.expenseId === expenseId && n.targetUserId === user.id && n.status === 'pending') {
+        n.status = decision;
+        n.resolvedAt = at;
+        n.readAt = at;
+      }
+    });
+    project.expenseHistory.push({
+      id: `eh-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`,
+      expenseId,
+      action: decision === 'approved' ? 'Expense approved by client' : 'Expense not approved by client',
+      category: expense.cat || 'Expense',
+      amount: Number(expense.amount) || 0,
+      status: decision,
+      actorId: user.id,
+      actorName: user.name || user.email || 'Client',
+      at,
+      details: comment
+    });
+    if (project.expenseHistory.length > 500) project.expenseHistory = project.expenseHistory.slice(-500);
+    project.lastUpdate = at.slice(0, 10);
+    await persistShared();
+    return sendJson(res, 200, { ok: true, decision, user, state: stateForUser(user), updatedAt: shared.meta.updatedAt });
   }
 
   if (pathname === '/api/admin/migrate-local' && req.method === 'POST') {
     if (user.role !== 'admin') return sendJson(res, 403, { error: 'Administrator access required' });
+    ensureWritablePersistentStorage();
     if (shared.meta.initialized) {
       return sendJson(res, 409, { error: 'Shared portal data is already initialized. Migration was not applied.' });
     }
@@ -402,7 +654,7 @@ async function start() {
     const pathname = decodeURIComponent(parsed.pathname || '/');
 
     if (pathname === '/health' || pathname === '/healthz') {
-      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', sharedStorage: true, storageMode });
+      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '1.8.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
     }
 
     if (pathname.startsWith('/api/')) {
