@@ -53,6 +53,7 @@ const PT_UI = Object.freeze({
   'Project Complete':'Projeto concluído',
   'All milestones complete':'Todos os marcos concluídos',
   'Construction phases':'Fases da construção',
+  '10 previous phases + current + next upcoming phase':'10 fases anteriores + fase atual + próxima fase',
   'Latest project photos':'Fotos mais recentes do projeto',
   'View all':'Ver todas',
   'No photos uploaded yet.':'Nenhuma foto enviada ainda.',
@@ -1149,14 +1150,30 @@ function renderView(){ const host=document.getElementById('view'); const p=curre
   bindView();
 }
 
+function overviewPhaseWindow(tasks=[]){
+  const timeline=tasks.slice().sort((a,b)=>(a.start||'9999-12-31').localeCompare(b.start||'9999-12-31') || (a.end||'9999-12-31').localeCompare(b.end||'9999-12-31') || String(a.code||'').localeCompare(String(b.code||'')));
+  if(!timeline.length) return [];
+  let currentIndex=timeline.findIndex(t=>taskStatus(t)==='current');
+  if(currentIndex<0){
+    const nextIndex=timeline.findIndex(t=>taskStatus(t)==='upcoming');
+    currentIndex=nextIndex>0?nextIndex-1:(nextIndex===0?0:timeline.length-1);
+  }
+  const previous=timeline.slice(Math.max(0,currentIndex-10),currentIndex);
+  const current=timeline[currentIndex]?[timeline[currentIndex]]:[];
+  const nextUpcoming=timeline.slice(currentIndex+1).find(t=>taskStatus(t)==='upcoming');
+  return [...previous,...current,...(nextUpcoming?[nextUpcoming]:[])];
+}
+
 function overviewTemplate(p){
   const remaining=Math.max(p.budget-p.invested,0);
   const next=p.tasks.find(t=>taskStatus(t)==='current') || p.tasks.find(t=>taskStatus(t)==='overdue') || p.tasks.find(t=>taskStatus(t)==='upcoming');
   const synced=p.scheduleSource?`<span class="schedule-sync-note">Schedule synced ${fmtDate(p.scheduleSource.importedDate)} from Excel</span>`:'';
+  const overviewPhases=overviewPhaseWindow(p.tasks);
+  const timelineOrder=p.tasks.slice().sort((a,b)=>(a.start||'9999-12-31').localeCompare(b.start||'9999-12-31') || (a.end||'9999-12-31').localeCompare(b.end||'9999-12-31') || String(a.code||'').localeCompare(String(b.code||'')));
   return `<div class="page-head"><div><h1>Project overview</h1><p>A clear snapshot of schedule, construction progress, and investment activity.</p>${synced}</div><div class="head-actions"><button class="btn btn-outline" data-goto="photos">View latest photos</button><button class="btn btn-primary" data-goto="schedule">Open schedule</button></div></div>
 <div class="hero-card card"><div class="eyebrow">${p.status}</div><h2>${p.name}</h2><p>${p.summary}</p><div class="hero-meta"><div><strong>${p.address}</strong><span>Project location</span></div><div><strong>${fmtDate(p.start)}</strong><span>Construction start</span></div><div><strong>${fmtDate(p.target)}</strong><span>Target completion</span></div><div><strong>${fmtDate(p.lastUpdate)}</strong><span>Last project update</span></div></div></div>
 <div class="grid grid-4" style="margin-top:18px"><div class="card metric"><span class="label">Project completion</span><div class="value">${p.completion}%</div><div class="progress"><span style="width:${p.completion}%"></span></div><div class="metric-icon">${svgIcon('schedule')}</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${p.budget?Math.round((p.invested/p.budget)*100):0}% of project budget</div><div class="metric-icon">${svgIcon('money')}</div></div><div class="card metric"><span class="label">Remaining budget</span><div class="value">${money(remaining)}</div><div class="muted" style="font-size:12px">Total budget ${money(p.budget)}</div></div><div class="card metric"><span class="label">Current / next phase</span><div class="value" style="font-size:19px;line-height:1.3">${next?escapeHtml(localizedPhaseName(next.name)):translateVisibleText('Project Complete')}</div><div class="muted" style="font-size:12px">${next?taskStatusLabel(next):'All milestones complete'}</div></div></div>
-<div class="grid grid-2" style="margin-top:18px"><div class="card"><div class="card-head"><h3>Construction phases</h3><span class="muted">${p.tasks.filter(x=>taskStatus(x)==='done').length} of ${p.tasks.length} completed</span></div>${p.tasks.slice(0,6).map((t,i)=>phaseRow(t,i)).join('')}</div><div class="card"><div class="card-head"><h3>Latest project photos</h3><button class="btn btn-soft" data-goto="photos">View all</button></div><div class="gallery" style="grid-template-columns:1fr 1fr">${p.photos.slice(-4).reverse().map(photoCard).join('')||'<div class="empty">No photos uploaded yet.</div>'}</div></div></div>`;
+<div class="grid grid-2" style="margin-top:18px"><div class="card"><div class="card-head"><div><h3>Construction phases</h3><span class="muted overview-phase-caption">10 previous phases + current + next upcoming phase</span></div><span class="muted">${p.tasks.filter(x=>taskStatus(x)==='done').length} of ${p.tasks.length} completed</span></div>${overviewPhases.map(t=>phaseRow(t,Math.max(0,timelineOrder.indexOf(t)))).join('')||'<div class="empty">No construction phases yet.</div>'}</div><div class="card"><div class="card-head"><h3>Latest project photos</h3><button class="btn btn-soft" data-goto="photos">View all</button></div><div class="gallery" style="grid-template-columns:1fr 1fr">${p.photos.slice(-4).reverse().map(photoCard).join('')||'<div class="empty">No photos uploaded yet.</div>'}</div></div></div>`;
 }
 
 function phaseRow(t,i){
