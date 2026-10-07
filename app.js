@@ -904,8 +904,8 @@ function normalizeState(raw){
       investorEquity:Number(r.investorEquity)||0,
       privateLoanBalance:Number(r.privateLoanBalance)||0,
       brokeragePct:Number(r.brokeragePct)||0,
-      closingPct:Number(r.closingPct)||0,
-      docTransferFees:Number(r.docTransferFees)||0,
+      closingPct:r.updatedAt?(Number(r.closingPct)||0):2,
+      docTransferPct:r.updatedAt?(r.docTransferPct===0||r.docTransferPct?Number(r.docTransferPct):(Number(r.estimatedSalePrice)>0&&Number(r.docTransferFees)>0?(Number(r.docTransferFees)/Number(r.estimatedSalePrice))*100:0)):1,
       propertyTaxProration:Number(r.propertyTaxProration)||0,
       hoaMunicipalFees:Number(r.hoaMunicipalFees)||0,
       sellerConcessions:Number(r.sellerConcessions)||0,
@@ -1422,7 +1422,7 @@ function listScheduleTemplate(p){
   const admin=currentUser().role==='admin';
   const groups=groupedTasks(p.tasks);
   const colspan=admin?8:7;
-  const body=groups.map(group=>`<tr class="schedule-category-row" style="${categoryThemeStyle(group.category)}"><td colspan="${colspan}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} ${currentLanguage==='pt'?(group.items.length===1?'fase':'fases'):(group.items.length===1?'phase':'phases')}</span></div></td></tr>${group.items.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong><span class="category-inline" style="${categoryChipStyle(taskCategory(t))}">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${Number(t.duration)||daysBetweenInclusive(t.start,t.end)}</td><td style="min-width:150px"><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><span class="table-progress-label">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td>${admin?`<td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')}`).join('');
+  const body=groups.map(group=>`<tr class="schedule-category-row" style="${categoryThemeStyle(group.category)}"><td colspan="${colspan}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} ${currentLanguage==='pt'?(group.items.length===1?'fase':'fases'):(group.items.length===1?'phase':'phases')}</span></div></td></tr>${group.items.map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong><span class="category-inline" style="${categoryChipStyle(taskCategory(t))}">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)}</td><td>${fmtDate(t.end)}</td><td>${Number(t.duration)||daysBetweenInclusive(t.start,t.end)}</td><td style="min-width:150px"><div class="progress"><span style="width:${Math.max(0,Math.min(100,Number(t.progress)||0))}%"></span></div><span class="table-progress-label">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill phase-status-pill ${taskStatusClass(t)}">${taskStatusLabel(t)}</span></td>${admin?`<td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')}`).join('');
   return `<div class="schedule-category-summary"><strong>${groups.length} construction categories</strong><span>Phases are automatically grouped into the broader category that best matches the work.</span></div><div class="table-wrap"><table class="table schedule-table"><thead><tr><th>Code</th><th>Phase</th><th>Start</th><th>Finish</th><th>Days</th><th>Progress</th><th>Status</th>${admin?'<th>Actions</th>':''}</tr></thead><tbody>${body}</tbody></table></div>`;
 }
 
@@ -1457,8 +1457,8 @@ function roiAssumptions(p){
     investorEquity:Number(r.investorEquity)||0,
     privateLoanBalance:Number(r.privateLoanBalance)||0,
     brokeragePct:Number(r.brokeragePct)||0,
-    closingPct:Number(r.closingPct)||0,
-    docTransferFees:Number(r.docTransferFees)||0,
+    closingPct:r.updatedAt?(Number(r.closingPct)||0):2,
+    docTransferPct:r.updatedAt?(r.docTransferPct===0||r.docTransferPct?Number(r.docTransferPct):(Number(r.estimatedSalePrice)>0&&Number(r.docTransferFees)>0?(Number(r.docTransferFees)/Number(r.estimatedSalePrice))*100:0)):1,
     propertyTaxProration:Number(r.propertyTaxProration)||0,
     hoaMunicipalFees:Number(r.hoaMunicipalFees)||0,
     sellerConcessions:Number(r.sellerConcessions)||0,
@@ -1475,15 +1475,16 @@ function calculateROIProjection(p,values={}){
   const loan=Math.max(0,Number(values.privateLoanBalance)||0);
   const brokerage=Math.max(0,sale*(Number(values.brokeragePct)||0)/100);
   const closing=Math.max(0,sale*(Number(values.closingPct)||0)/100);
-  const fixedFees=['docTransferFees','propertyTaxProration','hoaMunicipalFees','sellerConcessions','lenderExitFees','stagingRepairs','otherSellingCosts'].reduce((sum,k)=>sum+Math.max(0,Number(values[k])||0),0);
-  const sellingCosts=brokerage+closing+fixedFees;
+  const docTransfer=Math.max(0,sale*(Number(values.docTransferPct)||0)/100);
+  const fixedFees=['propertyTaxProration','hoaMunicipalFees','sellerConcessions','lenderExitFees','stagingRepairs','otherSellingCosts'].reduce((sum,k)=>sum+Math.max(0,Number(values[k])||0),0);
+  const sellingCosts=brokerage+closing+docTransfer+fixedFees;
   const netClosing=sale-loan-sellingCosts;
   const profitBeforePartner=netClosing-investorEquity;
   const commission=profitBeforePartner>0?profitBeforePartner*.10:0;
   const investorNetProfit=profitBeforePartner-commission;
   const investorCashReturned=netClosing-commission;
   const roi=investorEquity>0?(investorNetProfit/investorEquity)*100:null;
-  return {sale,investorEquity,loan,brokerage,closing,fixedFees,sellingCosts,netClosing,profitBeforePartner,commission,investorNetProfit,investorCashReturned,roi};
+  return {sale,investorEquity,loan,brokerage,closing,docTransfer,fixedFees,sellingCosts,netClosing,profitBeforePartner,commission,investorNetProfit,investorCashReturned,roi};
 }
 function roiValueClass(n){ return Number(n)<0?'roi-negative':Number(n)>0?'roi-positive':''; }
 function roiInputMoney(name,label,value,help=''){
@@ -1511,8 +1512,8 @@ function roiTemplate(p){
         <div class="roi-section-title"><strong>Selling transaction costs</strong><span>Enter actual or estimated seller-paid costs. Percentage items calculate from the projected sale price.</span></div>
         <div class="roi-input-grid roi-fee-grid">
           <div class="field"><label>Real estate brokerage commission</label><div class="percent-input"><input class="input roi-input" type="number" min="0" max="20" step="0.1" name="brokeragePct" value="${r.brokeragePct}"><span>%</span></div><small class="muted" id="roiBrokerageDollar">${money(calc.brokerage)}</small></div>
-          <div class="field"><label>Closing / title / escrow costs</label><div class="percent-input"><input class="input roi-input" type="number" min="0" max="20" step="0.1" name="closingPct" value="${r.closingPct}"><span>%</span></div><small class="muted" id="roiClosingDollar">${money(calc.closing)}</small></div>
-          ${roiInputMoney('docTransferFees','Documentary stamp / transfer taxes',r.docTransferFees)}
+          <div class="field"><label>Closing / title / escrow costs</label><div class="percent-input"><input class="input roi-input" type="number" min="0" max="20" step="0.1" name="closingPct" value="${r.closingPct}"><span>%</span></div><small class="muted" id="roiClosingDollar">${money(calc.closing)} · ${currentLanguage==='pt'?'padrão 2%':'default 2%'}</small></div>
+          <div class="field"><label>Documentary stamp / transfer taxes</label><div class="percent-input"><input class="input roi-input" type="number" min="0" max="20" step="0.1" name="docTransferPct" value="${r.docTransferPct}"><span>%</span></div><small class="muted" id="roiDocTransferDollar">${money(calc.docTransfer)} · ${currentLanguage==='pt'?'padrão 1%':'default 1%'}</small></div>
           ${roiInputMoney('propertyTaxProration','Property tax proration',r.propertyTaxProration)}
           ${roiInputMoney('hoaMunicipalFees','HOA / CDD / municipal fees',r.hoaMunicipalFees)}
           ${roiInputMoney('sellerConcessions','Seller concessions / credits',r.sellerConcessions)}
@@ -1549,12 +1550,12 @@ function roiTemplate(p){
 function roiFormValues(form,p){
   const fd=new FormData(form), use=fd.get('useInvestedToDate')==='on';
   const n=k=>Math.max(0,Number(fd.get(k))||0);
-  return {estimatedSalePrice:n('estimatedSalePrice'),useInvestedToDate:use,investorEquity:use?(Number(p.invested)||0):n('investorEquity'),privateLoanBalance:n('privateLoanBalance'),brokeragePct:n('brokeragePct'),closingPct:n('closingPct'),docTransferFees:n('docTransferFees'),propertyTaxProration:n('propertyTaxProration'),hoaMunicipalFees:n('hoaMunicipalFees'),sellerConcessions:n('sellerConcessions'),lenderExitFees:n('lenderExitFees'),stagingRepairs:n('stagingRepairs'),otherSellingCosts:n('otherSellingCosts'),partnerCommissionRate:10};
+  return {estimatedSalePrice:n('estimatedSalePrice'),useInvestedToDate:use,investorEquity:use?(Number(p.invested)||0):n('investorEquity'),privateLoanBalance:n('privateLoanBalance'),brokeragePct:n('brokeragePct'),closingPct:n('closingPct'),docTransferPct:n('docTransferPct'),propertyTaxProration:n('propertyTaxProration'),hoaMunicipalFees:n('hoaMunicipalFees'),sellerConcessions:n('sellerConcessions'),lenderExitFees:n('lenderExitFees'),stagingRepairs:n('stagingRepairs'),otherSellingCosts:n('otherSellingCosts'),partnerCommissionRate:10};
 }
 function updateROIResults(form,p){
   const values=roiFormValues(form,p),c=calculateROIProjection(p,values);
   const set=(id,text,clsVal=null)=>{const el=document.getElementById(id);if(!el)return;el.textContent=text;if(clsVal!==null){el.classList.remove('roi-positive','roi-negative');const cl=roiValueClass(clsVal);if(cl)el.classList.add(cl);}};
-  set('roiBrokerageDollar',money(c.brokerage)); set('roiClosingDollar',money(c.closing));
+  set('roiBrokerageDollar',`${money(c.brokerage)}`); set('roiClosingDollar',`${money(c.closing)} · ${currentLanguage==='pt'?'padrão 2%':'default 2%'}`); set('roiDocTransferDollar',`${money(c.docTransfer)} · ${currentLanguage==='pt'?'padrão 1%':'default 1%'}`);
   set('roiSaleMetric',money(c.sale)); set('roiFeesMetric',money(c.sellingCosts)); set('roiProfitMetric',money(c.investorNetProfit),c.investorNetProfit); set('roiPercentMetric',c.roi==null?'—':`${c.roi.toFixed(1)}%`,c.roi);
   set('roiWfSale',money(c.sale)); set('roiWfLoan',`−${money(c.loan)}`); set('roiWfFees',`−${money(c.sellingCosts)}`); set('roiWfNetClosing',money(c.netClosing),c.netClosing); set('roiWfEquity',`−${money(c.investorEquity)}`); set('roiWfPreCommission',money(c.profitBeforePartner),c.profitBeforePartner); set('roiWfCommission',`−${money(c.commission)}`); set('roiWfProfit',money(c.investorNetProfit),c.investorNetProfit); set('roiCashReturned',money(c.investorCashReturned),c.investorCashReturned); set('roiCommissionMetric',money(c.commission));
 }
@@ -1594,7 +1595,7 @@ function adminEditorTemplate(p){
   </div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project phases</h3><span class="muted">${p.tasks.length} schedule items · each phase is assigned to a broader construction category</span></div><button class="btn btn-soft" id="addTaskBtn2">${svgIcon('plus')} Add phase</button></div>
-  <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Dates</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead><tbody>${groupedTasks(p.tasks).flatMap(g=>g.items).map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong></td><td><span class="category-admin-chip" style="${categoryChipStyle(taskCategory(t))}">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)} → ${fmtDate(t.end)}</td><td><span class="mini-progress">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill ${taskStatus(t)==='overdue'?'pill-overdue':''}">${taskStatusLabel(t)}</span></td><td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit construction phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit phase</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="7" class="muted">No construction phases yet.</td></tr>'}</tbody></table></div></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Dates</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead><tbody>${groupedTasks(p.tasks).flatMap(g=>g.items).map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong></td><td><span class="category-admin-chip" style="${categoryChipStyle(taskCategory(t))}">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)} → ${fmtDate(t.end)}</td><td><span class="mini-progress">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill phase-status-pill ${taskStatusClass(t)}">${taskStatusLabel(t)}</span></td><td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit construction phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit phase</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="7" class="muted">No construction phases yet.</td></tr>'}</tbody></table></div></div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project photos</h3><span class="muted">${p.photos.length} uploaded photos · edit title, date, phase, or replace the image</span></div><button class="btn btn-soft" id="adminAddPhotoBtn2">${svgIcon('plus')} Add photo</button></div>
   <div class="table-wrap"><table class="table"><thead><tr><th>Photo</th><th>Title</th><th>Phase</th><th>Date</th><th>Storage</th><th>Actions</th></tr></thead><tbody>${p.photos.slice().reverse().map(ph=>`<tr><td><img class="table-thumb clickable-thumb" data-photo-open="${ph.id}" src="${ph.url}" alt="${attr(ph.title||'Project photo')}"></td><td><strong>${escapeHtml(localizedPhaseName(ph.title))}</strong></td><td>${escapeHtml(ph.phase?localizedPhotoPhase(ph.phase):'—')}</td><td>${fmtDate(ph.date)}</td><td><span class="storage-size">${ph.optimizedBytes?humanBytes(ph.optimizedBytes):'Legacy image'}</span></td><td><div class="action-group"><button class="icon-action" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="muted">No photos uploaded yet.</td></tr>'}</tbody></table></div></div>
