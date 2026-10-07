@@ -29,6 +29,65 @@ const PT_UI = Object.freeze({
   'Schedule':'Cronograma',
   'Photos':'Fotos',
   'Investment':'Investimento',
+  'ROI Projection':'Projeção de ROI',
+  'Project ROI':'ROI do projeto',
+  'Project ROI projection':'Projeção de ROI do projeto',
+  'Model the potential investor return at sale using equity invested, private-loan payoff, selling costs, and the Kairos partner/coordinator commission.':'Modele o retorno potencial do investidor na venda usando o capital próprio investido, a quitação do empréstimo privado, os custos de venda e a comissão da Kairos como parceira/coordenadora.',
+  'Projection inputs':'Dados da projeção',
+  'Estimated home sale price':'Preço estimado de venda do imóvel',
+  'Investor cash / equity invested':'Capital próprio / dinheiro investido pelo investidor',
+  'Use current Invested to Date automatically':'Usar automaticamente o valor atual de Investido até o Momento',
+  'Current project spend to date':'Gasto atual do projeto até o momento',
+  'Private loan payoff remaining':'Saldo restante para quitação do empréstimo privado',
+  'Selling transaction costs':'Custos da transação de venda',
+  'Real estate brokerage commission':'Comissão de corretagem imobiliária',
+  'Closing / title / escrow costs':'Custos de fechamento / título / escrow',
+  'Documentary stamp / transfer taxes':'Imposto documental / impostos de transferência',
+  'Property tax proration':'Rateio de imposto predial',
+  'HOA / CDD / municipal fees':'Taxas de HOA / CDD / municipais',
+  'Seller concessions / credits':'Concessões / créditos ao comprador',
+  'Private lender exit / payoff fees':'Taxas de saída / quitação do credor privado',
+  'Staging / repairs / sale preparation':'Preparação / reparos / preparação para venda',
+  'Other selling costs':'Outros custos de venda',
+  'Save official projection':'Salvar projeção oficial',
+  'Reset scenario':'Redefinir cenário',
+  'Official assumptions saved':'Premissas oficiais salvas',
+  'Investor scenario':'Cenário do investidor',
+  'Investor accounts can adjust the assumptions below for a what-if scenario. Those changes are not saved to the project.':'Contas de investidores podem ajustar as premissas abaixo para simular cenários. Essas alterações não são salvas no projeto.',
+  'Admin assumptions are saved to the project and become the starting projection investors see.':'As premissas do administrador são salvas no projeto e se tornam a projeção inicial exibida aos investidores.',
+  'Projected sale price':'Preço de venda projetado',
+  'Total selling costs':'Custos totais de venda',
+  'Net closing proceeds':'Receita líquida no fechamento',
+  'Profit before partner commission':'Lucro antes da comissão do parceiro',
+  'Kairos partner / coordinator commission':'Comissão Kairos de parceria / coordenação',
+  'Investor net profit':'Lucro líquido do investidor',
+  'Projected investor ROI':'ROI projetado do investidor',
+  'Investor cash returned':'Capital devolvido ao investidor',
+  '10% of positive profit after loan payoff, selling costs, and return of investor equity. No partner commission is charged when projected profit is zero or negative.':'10% do lucro positivo após a quitação do empréstimo, custos de venda e devolução do capital próprio do investidor. Nenhuma comissão de parceria é cobrada quando o lucro projetado é zero ou negativo.',
+  'Sale proceeds waterfall':'Distribuição dos recursos da venda',
+  'Gross sale price':'Preço bruto de venda',
+  'Less: private loan payoff':'Menos: quitação do empréstimo privado',
+  'Less: selling transaction costs':'Menos: custos da transação de venda',
+  'Cash after closing costs and debt':'Caixa após custos de fechamento e dívida',
+  'Less: investor equity returned':'Menos: devolução do capital próprio do investidor',
+  'Less: Kairos 10% partner commission':'Menos: comissão Kairos de 10%',
+  'Net investor profit':'Lucro líquido do investidor',
+  'ROI formula':'Fórmula do ROI',
+  'Projected ROI = Investor net profit ÷ Investor cash/equity invested.':'ROI projetado = Lucro líquido do investidor ÷ Capital próprio/dinheiro investido pelo investidor.',
+  'Important funding note':'Observação importante sobre o financiamento',
+  'If Invested to Date includes costs paid with the private loan, using that full amount as investor equity would double-count loan principal. Turn off the automatic option and enter only the investor cash/equity actually contributed.':'Se o valor Investido até o Momento incluir custos pagos com o empréstimo privado, usar o valor total como capital próprio do investidor duplicará o principal da dívida. Desative a opção automática e informe somente o dinheiro/capital próprio efetivamente aportado pelo investidor.',
+  'Projection only — not a guarantee of sale price, profit, tax treatment, or return. Enter actual lender payoff and closing figures when available.':'Apenas projeção — não é garantia de preço de venda, lucro, tratamento tributário ou retorno. Informe os valores reais de quitação do credor e de fechamento quando disponíveis.',
+  'Enter an estimated sale price to calculate the projection.':'Informe um preço estimado de venda para calcular a projeção.',
+  'Projection saved':'Projeção salva',
+  'Current invested-to-date amount':'Valor atual investido até o momento',
+  'Percent of sale price':'Percentual do preço de venda',
+  'Fixed amount':'Valor fixo',
+  'Enter actual or estimated seller-paid costs. Percentage items calculate from the projected sale price.':'Informe os custos pagos pelo vendedor, reais ou estimados. Os itens percentuais são calculados sobre o preço de venda projetado.',
+  'After 10% partner commission':'Após a comissão de 10% do parceiro',
+  'Investor net profit ÷ investor equity':'Lucro líquido do investidor ÷ capital próprio do investidor',
+  'From gross sale price to investor net profit':'Do preço bruto de venda ao lucro líquido do investidor',
+  'Kairos 10% commission':'Comissão Kairos de 10%',
+  'Scenario reset':'Cenário redefinido',
   'Admin Center':'Central administrativa',
   'Project Portal':'Portal do Projeto',
   'Administrator':'Administrador',
@@ -628,7 +687,8 @@ const PT_DYNAMIC = [
   [/^(.+) · (\d+)% complete$/,'$1 · $2% concluído'],
   [/^(\d+) schedule items$/,'$1 itens do cronograma'],
   [/^(\d+) uploaded photos$/,'$1 fotos enviadas'],
-  [/^(\d+) entries$/,'$1 lançamentos']
+  [/^(\d+) entries$/,'$1 lançamentos'],
+  [/^Current project spend to date: (.+)$/,'Gasto atual do projeto até o momento: $1']
 ];
 
 function localeCode(){ return currentLanguage==='pt'?'pt-BR':'en-US'; }
@@ -672,6 +732,7 @@ const svgIcon = (name) => {
     schedule:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
     photos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m5 18 5-5 3 3 2-2 4 4"/></svg>',
     money:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M15 8.5c-.7-.8-1.7-1.2-3-1.2-1.7 0-3 1-3 2.4 0 3.6 6 1.6 6 4.6 0 1.4-1.2 2.4-3 2.4-1.4 0-2.6-.5-3.4-1.5M12 5.7v12.6"/></svg>',
+    roi:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9M10 19V5M16 19v-7M3 19h18"/><path d="m5 7 5-4 5 4 5-4"/><path d="M17 3h3v3"/></svg>',
     admin:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4.5 6v5c0 4.7 2.8 8.2 7.5 10 4.7-1.8 7.5-5.3 7.5-10V6L12 3Z"/><path d="M9.5 12 11 13.5l3.5-4"/></svg>',
     bell:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>',
     menu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
@@ -836,6 +897,24 @@ function normalizeState(raw){
     p.expenses=Array.isArray(p.expenses)?p.expenses:[];
     p.expenseHistory=Array.isArray(p.expenseHistory)?p.expenseHistory:[];
     p.notifications=Array.isArray(p.notifications)?p.notifications:[];
+    const r=p.roiProjection && typeof p.roiProjection==='object'?p.roiProjection:{};
+    p.roiProjection={
+      estimatedSalePrice:Number(r.estimatedSalePrice)||0,
+      useInvestedToDate:r.useInvestedToDate!==false,
+      investorEquity:Number(r.investorEquity)||0,
+      privateLoanBalance:Number(r.privateLoanBalance)||0,
+      brokeragePct:Number(r.brokeragePct)||0,
+      closingPct:Number(r.closingPct)||0,
+      docTransferFees:Number(r.docTransferFees)||0,
+      propertyTaxProration:Number(r.propertyTaxProration)||0,
+      hoaMunicipalFees:Number(r.hoaMunicipalFees)||0,
+      sellerConcessions:Number(r.sellerConcessions)||0,
+      lenderExitFees:Number(r.lenderExitFees)||0,
+      stagingRepairs:Number(r.stagingRepairs)||0,
+      otherSellingCosts:Number(r.otherSellingCosts)||0,
+      partnerCommissionRate:10,
+      updatedAt:r.updatedAt||''
+    };
     p.tasks=p.tasks.map(t=>({...t,id:t.id||uid('t'),code:t.code??'',name:t.name||'Untitled phase',category:t.category||inferPhaseCategory(t.name||'',t.code||''),progress:Number(t.progress)||0,duration:Number(t.duration)||daysBetweenInclusive(t.start,t.end),trade:t.trade||'',notes:t.notes||''}));
     p.photos=p.photos.map(ph=>({...ph,id:ph.id||uid('ph'),title:ph.title||'Project photo',date:ph.date||todayISO(),phase:ph.phase||'',url:ph.url||'',mime:ph.mime||'',optimizedBytes:Number(ph.optimizedBytes||ph.bytes)||0,originalBytes:Number(ph.originalBytes)||0,width:Number(ph.width)||0,height:Number(ph.height)||0,originalName:ph.originalName||''}));
     p.expenses=p.expenses.map(e=>({...e,id:e.id||uid('ex'),cat:e.cat||'Other',amount:Number(e.amount)||0,date:e.date||'',vendor:e.vendor||'',notes:e.notes||'',approvalStatus:e.approvalStatus||'not_required',approvalRequestedAt:e.approvalRequestedAt||'',approvalRequestedBy:e.approvalRequestedBy||'',decisionAt:e.decisionAt||'',decisionBy:e.decisionBy||'',decisionComment:e.decisionComment||''}));
@@ -1170,7 +1249,7 @@ async function boot(){
   }
 }
 
-function shellTemplate(){ const u=currentUser(),p=currentProject(); const items=[['overview','home','Overview'],['schedule','schedule','Schedule'],['photos','photos','Photos'],['financials','money','Investment']]; if(u.role==='admin')items.push(['admin','admin','Admin Center']); const notices=pendingApprovalCount(); return `<div class="shell">
+function shellTemplate(){ const u=currentUser(),p=currentProject(); const items=[['overview','home','Overview'],['schedule','schedule','Schedule'],['photos','photos','Photos'],['financials','money','Investment'],['roi','roi','ROI Projection']]; if(u.role==='admin')items.push(['admin','admin','Admin Center']); const notices=pendingApprovalCount(); return `<div class="shell">
 <aside class="sidebar" id="sidebar"><div class="side-brand">${logoMark()}<div><strong>Kairos Legacy Homes</strong><small>Project Portal</small></div></div><nav class="nav">${items.map(([v,i,l])=>`<button data-view="${v}" class="${currentView===v?'active':''}">${svgIcon(i)}<span>${l}</span></button>`).join('')}</nav><div class="side-footer"><div class="user-mini"><div class="avatar">${initials(u.name)}</div><div><strong>${u.name}</strong><span>${u.role==='admin'?'Administrator':'Investor / Client'}</span></div></div><button class="logout" id="logoutBtn">Sign out</button></div></aside>
 <main class="main"><header class="topbar"><div class="top-left"><button class="mobile-menu" id="mobileMenu">${svgIcon('menu')}</button><div class="crumb"><small>${u.role==='admin'?'Administrative portal':'Private client portal'}</small><strong>${p?.name || 'No project selected'}</strong></div></div><div class="top-actions">${accessibleProjects().length?`<select class="project-switch" id="projectSwitch">${accessibleProjects().map(x=>`<option value="${x.id}" ${x.id===selectedProjectId?'selected':''}>${x.name}</option>`).join('')}</select>`:''}<button class="icon-btn notification-button" id="notificationBtn" title="Notifications & approvals">${svgIcon('bell')}${notices?`<span class="notification-badge">${notices>99?'99+':notices}</span>`:''}</button>${languageSwitcher('top-language')}</div></header><section class="content" id="view"></section></main></div>`; }
 
@@ -1187,6 +1266,7 @@ function renderView(){ const host=document.getElementById('view'); const p=curre
   if(currentView==='schedule') host.innerHTML=scheduleTemplate(p);
   if(currentView==='photos') host.innerHTML=photosTemplate(p);
   if(currentView==='financials') host.innerHTML=financialTemplate(p);
+  if(currentView==='roi') host.innerHTML=roiTemplate(p);
   if(currentView==='admin') host.innerHTML=adminTemplate();
   applyLanguage(host);
   bindView();
@@ -1369,6 +1449,126 @@ function financialTemplate(p){
   return `<div class="page-head"><div><h1>Investment & budget</h1><p>Investor-friendly visibility into budget utilization, project costs, approvals, and expense history.</p></div>${admin?`<button class="btn btn-primary" id="financialAddExpenseBtn">${svgIcon('plus')} Add expense</button>`:''}</div><div class="grid grid-3"><div class="card metric"><span class="label">Approved project budget</span><div class="value">${money(p.budget)}</div><div class="muted" style="font-size:12px">${currentLanguage==='pt'?(admin?'Orçamento autorizado atual · novas despesas atualizam este valor automaticamente':'Orçamento autorizado atual'):(admin?'Current authorized budget · new expenses update this automatically':'Current authorized budget')}</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${pct}% utilized</div></div><div class="card metric"><span class="label">Remaining capital</span><div class="value">${money(Math.max(0,p.budget-p.invested))}</div><div class="muted" style="font-size:12px">Based on current budget</div></div></div>${approvalPanel}<div class="card" style="margin-top:18px"><div class="card-head"><h3>Capital utilization</h3><span class="muted">Updated ${fmtDate(p.lastUpdate)}</span></div><div class="finance-wrap"><div><div class="donut" style="--pct:${pct}%"><div class="center"><strong>${pct}%</strong><span>budget utilized</span></div></div><div class="progress gold"><span style="width:${pct}%"></span></div></div><div><h3 style="margin:5px 0 18px;font-size:15px">Spend by category</h3><div class="spend-bars">${categorySpend.map(e=>`<div class="spend-item"><span>${escapeHtml(localizedExpenseCategory(e.cat))}</span><div class="spend-track"><span style="width:${Math.round((Number(e.amount)||0)/max*100)}%"></span></div><b>${money(e.amount)}</b></div>`).join('')||'<div class="muted">No expenses entered yet.</div>'}</div></div></div></div><div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Expense ledger</h3><span class="muted">${admin?'Edit transactions and monitor client decisions':'Review project expenses and approval status'}</span></div>${admin?`<button class="btn btn-soft" id="financialAddExpenseBtn2">${svgIcon('plus')} Add expense</button>`:''}</div>${expenseTableTemplate(p,admin)}</div><div class="card" style="margin-top:18px"><div class="card-head"><div><h3>Expense approval history</h3><span class="muted">Permanent in-app record of requests, edits, approvals, rejections, and deletions</span></div></div>${expenseHistoryTemplate(p)}</div><div class="card pad" style="margin-top:18px"><strong style="font-size:13px">Investor note</strong><p class="muted" style="font-size:12px;line-height:1.7;margin-bottom:0">New expenses are immediately reflected in Approved Project Budget and Invested to Date as requested. Client approval or non-approval is tracked separately as an acknowledgement/decision and does not erase the recorded project cost.</p></div>`;
 }
 
+function roiAssumptions(p){
+  const r=p.roiProjection||{};
+  return {
+    estimatedSalePrice:Number(r.estimatedSalePrice)||0,
+    useInvestedToDate:r.useInvestedToDate!==false,
+    investorEquity:Number(r.investorEquity)||0,
+    privateLoanBalance:Number(r.privateLoanBalance)||0,
+    brokeragePct:Number(r.brokeragePct)||0,
+    closingPct:Number(r.closingPct)||0,
+    docTransferFees:Number(r.docTransferFees)||0,
+    propertyTaxProration:Number(r.propertyTaxProration)||0,
+    hoaMunicipalFees:Number(r.hoaMunicipalFees)||0,
+    sellerConcessions:Number(r.sellerConcessions)||0,
+    lenderExitFees:Number(r.lenderExitFees)||0,
+    stagingRepairs:Number(r.stagingRepairs)||0,
+    otherSellingCosts:Number(r.otherSellingCosts)||0,
+    partnerCommissionRate:10,
+    updatedAt:r.updatedAt||''
+  };
+}
+function calculateROIProjection(p,values={}){
+  const sale=Math.max(0,Number(values.estimatedSalePrice)||0);
+  const investorEquity=Math.max(0,values.useInvestedToDate!==false?(Number(p.invested)||0):(Number(values.investorEquity)||0));
+  const loan=Math.max(0,Number(values.privateLoanBalance)||0);
+  const brokerage=Math.max(0,sale*(Number(values.brokeragePct)||0)/100);
+  const closing=Math.max(0,sale*(Number(values.closingPct)||0)/100);
+  const fixedFees=['docTransferFees','propertyTaxProration','hoaMunicipalFees','sellerConcessions','lenderExitFees','stagingRepairs','otherSellingCosts'].reduce((sum,k)=>sum+Math.max(0,Number(values[k])||0),0);
+  const sellingCosts=brokerage+closing+fixedFees;
+  const netClosing=sale-loan-sellingCosts;
+  const profitBeforePartner=netClosing-investorEquity;
+  const commission=profitBeforePartner>0?profitBeforePartner*.10:0;
+  const investorNetProfit=profitBeforePartner-commission;
+  const investorCashReturned=netClosing-commission;
+  const roi=investorEquity>0?(investorNetProfit/investorEquity)*100:null;
+  return {sale,investorEquity,loan,brokerage,closing,fixedFees,sellingCosts,netClosing,profitBeforePartner,commission,investorNetProfit,investorCashReturned,roi};
+}
+function roiValueClass(n){ return Number(n)<0?'roi-negative':Number(n)>0?'roi-positive':''; }
+function roiInputMoney(name,label,value,help=''){
+  return `<div class="field"><label>${label}</label><div class="money-input"><span>$</span><input class="input roi-input" type="number" min="0" step="100" name="${name}" value="${Number(value)||0}"></div>${help?`<small class="muted">${help}</small>`:''}</div>`;
+}
+function roiTemplate(p){
+  const admin=currentUser()?.role==='admin';
+  const r=roiAssumptions(p), calc=calculateROIProjection(p,r);
+  const equity=r.useInvestedToDate?Number(p.invested)||0:r.investorEquity;
+  const savedLabel=r.updatedAt?`${translateVisibleText('Official assumptions saved')} · ${fmtDateTime(r.updatedAt)}`:(admin?translateVisibleText('Admin assumptions are saved to the project and become the starting projection investors see.'):translateVisibleText('Investor scenario'));
+  return `<div class="page-head"><div><h1>Project ROI projection</h1><p>Model the potential investor return at sale using equity invested, private-loan payoff, selling costs, and the Kairos partner/coordinator commission.</p></div><div class="roi-save-state">${escapeHtml(savedLabel)}</div></div>
+  <div class="roi-layout">
+    <div class="card roi-assumptions-card"><div class="card-head"><div><h3>Projection inputs</h3><span class="muted">${admin?'Admin assumptions are saved to the project and become the starting projection investors see.':'Investor accounts can adjust the assumptions below for a what-if scenario. Those changes are not saved to the project.'}</span></div></div>
+      <form id="roiForm" class="roi-form pad">
+        <div class="roi-input-grid">
+          ${roiInputMoney('estimatedSalePrice','Estimated home sale price',r.estimatedSalePrice)}
+          ${roiInputMoney('privateLoanBalance','Private loan payoff remaining',r.privateLoanBalance)}
+        </div>
+        <div class="roi-equity-box">
+          <div><strong>Investor cash / equity invested</strong><span>Current project spend to date: ${money(p.invested)}</span></div>
+          <label class="roi-check"><input type="checkbox" name="useInvestedToDate" ${r.useInvestedToDate?'checked':''}> <span>Use current Invested to Date automatically</span></label>
+          <div class="money-input"><span>$</span><input class="input roi-input" id="roiInvestorEquity" type="number" min="0" step="100" name="investorEquity" value="${Number(equity)||0}" ${r.useInvestedToDate?'disabled':''}></div>
+        </div>
+        <div class="roi-warning"><strong>Important funding note</strong><span>If Invested to Date includes costs paid with the private loan, using that full amount as investor equity would double-count loan principal. Turn off the automatic option and enter only the investor cash/equity actually contributed.</span></div>
+        <div class="roi-section-title"><strong>Selling transaction costs</strong><span>Enter actual or estimated seller-paid costs. Percentage items calculate from the projected sale price.</span></div>
+        <div class="roi-input-grid roi-fee-grid">
+          <div class="field"><label>Real estate brokerage commission</label><div class="percent-input"><input class="input roi-input" type="number" min="0" max="20" step="0.1" name="brokeragePct" value="${r.brokeragePct}"><span>%</span></div><small class="muted" id="roiBrokerageDollar">${money(calc.brokerage)}</small></div>
+          <div class="field"><label>Closing / title / escrow costs</label><div class="percent-input"><input class="input roi-input" type="number" min="0" max="20" step="0.1" name="closingPct" value="${r.closingPct}"><span>%</span></div><small class="muted" id="roiClosingDollar">${money(calc.closing)}</small></div>
+          ${roiInputMoney('docTransferFees','Documentary stamp / transfer taxes',r.docTransferFees)}
+          ${roiInputMoney('propertyTaxProration','Property tax proration',r.propertyTaxProration)}
+          ${roiInputMoney('hoaMunicipalFees','HOA / CDD / municipal fees',r.hoaMunicipalFees)}
+          ${roiInputMoney('sellerConcessions','Seller concessions / credits',r.sellerConcessions)}
+          ${roiInputMoney('lenderExitFees','Private lender exit / payoff fees',r.lenderExitFees)}
+          ${roiInputMoney('stagingRepairs','Staging / repairs / sale preparation',r.stagingRepairs)}
+          ${roiInputMoney('otherSellingCosts','Other selling costs',r.otherSellingCosts)}
+        </div>
+        <div class="roi-commission-note"><div class="roi-commission-rate">10%</div><div><strong>Kairos partner / coordinator commission</strong><span>10% of positive profit after loan payoff, selling costs, and return of investor equity. No partner commission is charged when projected profit is zero or negative.</span></div></div>
+        <div class="form-actions roi-actions">${admin?`<button type="button" class="btn btn-soft" id="roiResetBtn">Reset scenario</button><button type="submit" class="btn btn-primary">${svgIcon('check')} Save official projection</button>`:`<button type="button" class="btn btn-soft" id="roiResetBtn">Reset scenario</button>`}</div>
+      </form>
+    </div>
+    <div class="roi-results-col">
+      <div class="grid grid-2 roi-metrics">
+        <div class="card metric"><span class="label">Projected sale price</span><div class="value" id="roiSaleMetric">${money(calc.sale)}</div></div>
+        <div class="card metric"><span class="label">Total selling costs</span><div class="value" id="roiFeesMetric">${money(calc.sellingCosts)}</div></div>
+        <div class="card metric"><span class="label">Investor net profit</span><div class="value ${roiValueClass(calc.investorNetProfit)}" id="roiProfitMetric">${money(calc.investorNetProfit)}</div><div class="muted" style="font-size:11px">After 10% partner commission</div></div>
+        <div class="card metric roi-highlight"><span class="label">Projected investor ROI</span><div class="value ${roiValueClass(calc.roi)}" id="roiPercentMetric">${calc.roi==null?'—':`${calc.roi.toFixed(1)}%`}</div><div class="muted" style="font-size:11px">Investor net profit ÷ investor equity</div></div>
+      </div>
+      <div class="card roi-waterfall"><div class="card-head"><div><h3>Sale proceeds waterfall</h3><span class="muted">From gross sale price to investor net profit</span></div></div><div class="roi-waterfall-body">
+        <div><span>Gross sale price</span><strong id="roiWfSale">${money(calc.sale)}</strong></div>
+        <div class="minus"><span>Less: private loan payoff</span><strong id="roiWfLoan">−${money(calc.loan)}</strong></div>
+        <div class="minus"><span>Less: selling transaction costs</span><strong id="roiWfFees">−${money(calc.sellingCosts)}</strong></div>
+        <div class="subtotal"><span>Cash after closing costs and debt</span><strong id="roiWfNetClosing">${money(calc.netClosing)}</strong></div>
+        <div class="minus"><span>Less: investor equity returned</span><strong id="roiWfEquity">−${money(calc.investorEquity)}</strong></div>
+        <div class="subtotal"><span>Profit before partner commission</span><strong id="roiWfPreCommission">${money(calc.profitBeforePartner)}</strong></div>
+        <div class="minus"><span>Less: Kairos 10% partner commission</span><strong id="roiWfCommission">−${money(calc.commission)}</strong></div>
+        <div class="total"><span>Net investor profit</span><strong id="roiWfProfit">${money(calc.investorNetProfit)}</strong></div>
+      </div></div>
+      <div class="card roi-return-card"><div><span>Investor cash returned</span><strong id="roiCashReturned">${money(calc.investorCashReturned)}</strong></div><div><span>Kairos 10% commission</span><strong id="roiCommissionMetric">${money(calc.commission)}</strong></div></div>
+      <div class="card pad roi-formula-card"><strong>ROI formula</strong><p>Projected ROI = Investor net profit ÷ Investor cash/equity invested.</p><p class="muted">Projection only — not a guarantee of sale price, profit, tax treatment, or return. Enter actual lender payoff and closing figures when available.</p></div>
+    </div>
+  </div>`;
+}
+function roiFormValues(form,p){
+  const fd=new FormData(form), use=fd.get('useInvestedToDate')==='on';
+  const n=k=>Math.max(0,Number(fd.get(k))||0);
+  return {estimatedSalePrice:n('estimatedSalePrice'),useInvestedToDate:use,investorEquity:use?(Number(p.invested)||0):n('investorEquity'),privateLoanBalance:n('privateLoanBalance'),brokeragePct:n('brokeragePct'),closingPct:n('closingPct'),docTransferFees:n('docTransferFees'),propertyTaxProration:n('propertyTaxProration'),hoaMunicipalFees:n('hoaMunicipalFees'),sellerConcessions:n('sellerConcessions'),lenderExitFees:n('lenderExitFees'),stagingRepairs:n('stagingRepairs'),otherSellingCosts:n('otherSellingCosts'),partnerCommissionRate:10};
+}
+function updateROIResults(form,p){
+  const values=roiFormValues(form,p),c=calculateROIProjection(p,values);
+  const set=(id,text,clsVal=null)=>{const el=document.getElementById(id);if(!el)return;el.textContent=text;if(clsVal!==null){el.classList.remove('roi-positive','roi-negative');const cl=roiValueClass(clsVal);if(cl)el.classList.add(cl);}};
+  set('roiBrokerageDollar',money(c.brokerage)); set('roiClosingDollar',money(c.closing));
+  set('roiSaleMetric',money(c.sale)); set('roiFeesMetric',money(c.sellingCosts)); set('roiProfitMetric',money(c.investorNetProfit),c.investorNetProfit); set('roiPercentMetric',c.roi==null?'—':`${c.roi.toFixed(1)}%`,c.roi);
+  set('roiWfSale',money(c.sale)); set('roiWfLoan',`−${money(c.loan)}`); set('roiWfFees',`−${money(c.sellingCosts)}`); set('roiWfNetClosing',money(c.netClosing),c.netClosing); set('roiWfEquity',`−${money(c.investorEquity)}`); set('roiWfPreCommission',money(c.profitBeforePartner),c.profitBeforePartner); set('roiWfCommission',`−${money(c.commission)}`); set('roiWfProfit',money(c.investorNetProfit),c.investorNetProfit); set('roiCashReturned',money(c.investorCashReturned),c.investorCashReturned); set('roiCommissionMetric',money(c.commission));
+}
+function bindROI(){
+  const form=document.getElementById('roiForm'),p=currentProject(); if(!form||!p)return;
+  const use=form.elements.useInvestedToDate,equity=document.getElementById('roiInvestorEquity');
+  const syncEquity=()=>{if(!equity)return;equity.disabled=!!use.checked;if(use.checked)equity.value=Number(p.invested)||0;updateROIResults(form,p);};
+  form.querySelectorAll('.roi-input').forEach(el=>el.addEventListener('input',()=>updateROIResults(form,p)));
+  use.addEventListener('change',syncEquity);
+  const reset=document.getElementById('roiResetBtn'); if(reset)reset.onclick=()=>{const r=roiAssumptions(p);Object.entries(r).forEach(([k,v])=>{const el=form.elements[k];if(!el)return;if(el.type==='checkbox')el.checked=!!v;else el.value=v;});syncEquity();toast('Scenario reset');};
+  form.onsubmit=async e=>{e.preventDefault();if(currentUser()?.role!=='admin')return;const values=roiFormValues(form,p);p.roiProjection={...values,partnerCommissionRate:10,updatedAt:new Date().toISOString()};await saveState();renderView();toast('Projection saved');};
+  updateROIResults(form,p);
+}
+
 function expenseTableTemplate(p,withActions=false){
   const client=currentUser()?.role==='client';
   return `<div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Category</th><th>Vendor / payee</th><th>Notes</th><th>Amount</th><th>Client approval</th>${withActions?'<th>Actions</th>':''}</tr></thead><tbody>${p.expenses.map(e=>`<tr><td>${fmtDate(e.date)}</td><td><strong>${escapeHtml(localizedExpenseCategory(e.cat))}</strong></td><td>${escapeHtml(e.vendor||'—')}</td><td class="wrap-cell">${escapeHtml(e.notes||'—')}</td><td><strong>${money(e.amount)}</strong></td><td><span class="approval-badge ${expenseApprovalClass(e)}">${expenseApprovalLabel(e)}</span>${e.decisionComment?`<small class="approval-comment">“${escapeHtml(e.decisionComment)}”</small>`:''}${client&&expenseApprovalStatus(e)==='pending'?`<div class="inline-decision-actions"><button class="btn btn-soft btn-compact" data-expense-decision="rejected" data-expense-id="${e.id}" data-expense-project="${p.id}">Not approve</button><button class="btn btn-primary btn-compact" data-expense-decision="approved" data-expense-id="${e.id}" data-expense-project="${p.id}">Approve</button></div>`:''}</td>${withActions?`<td><div class="action-group"><button class="icon-action" title="Edit expense" data-edit-expense="${e.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete expense" data-delete-expense="${e.id}">${svgIcon('trash')}</button></div></td>`:''}</tr>`).join('')||`<tr><td colspan="${withActions?7:6}" class="muted">No expenses have been added.</td></tr>`}</tbody></table></div>`;
@@ -1390,7 +1590,7 @@ function adminEditorTemplate(p){
   <div class="pad">
     <div class="grid grid-3"><div><div class="muted mini-label">Assigned client</div><strong class="mini-value">${escapeHtml(client?.name||'Unassigned')}</strong></div><div><div class="muted mini-label">Budget</div><strong class="mini-value">${money(p.budget)}</strong></div><div><div class="muted mini-label">Completion</div><strong class="mini-value">${p.completion}%</strong></div></div><div class="progress" style="margin:18px 0 22px"><span style="width:${p.completion}%"></span></div>
     <div class="schedule-import-box"><div class="schedule-import-icon">${svgIcon('file')}</div><div class="schedule-import-copy"><strong>Excel construction schedule</strong>${src?`<span>${currentLanguage==='pt'?`Sincronizado de <b>${escapeHtml(src.fileName)}</b> em ${fmtDate(src.importedDate)} · ${src.rows} fases`:`Synced from <b>${escapeHtml(src.fileName)}</b> on ${fmtDate(src.importedDate)} · ${src.rows} phases`}</span>`:'<span>No spreadsheet has been imported for this project yet.</span>'}<small>Upload this project's spreadsheet to replace or merge phases, dates, completion flags, duration, and project schedule dates.</small></div><div class="schedule-import-actions"><button class="btn btn-primary" id="importScheduleBtn">${svgIcon('upload')} ${src?'Update from Excel':'Import Excel'}</button><a class="btn btn-soft" href="Kairos_Construction_Schedule_Template.xlsx" download>Template</a>${p.scheduleBackup?'<button class="btn btn-soft" id="undoScheduleImportBtn">Undo last import</button>':''}</div></div>
-    <div class="admin-action-row"><button class="btn btn-outline" id="addTaskBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="adminAddPhotoBtn">${svgIcon('plus')} Add photo</button><button class="btn btn-outline" id="addExpenseBtn">${svgIcon('plus')} Add expense</button></div>
+    <div class="admin-action-row"><button class="btn btn-outline" id="addTaskBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="adminAddPhotoBtn">${svgIcon('plus')} Add photo</button><button class="btn btn-outline" id="addExpenseBtn">${svgIcon('plus')} Add expense</button><button class="btn btn-outline" data-goto="roi">${svgIcon('roi')} ROI Projection</button></div>
   </div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project phases</h3><span class="muted">${p.tasks.length} schedule items · each phase is assigned to a broader construction category</span></div><button class="btn btn-soft" id="addTaskBtn2">${svgIcon('plus')} Add phase</button></div>
@@ -1411,6 +1611,7 @@ function bindView(){
   const sap=document.getElementById('scheduleAddPhaseBtn'); if(sap)sap.onclick=()=>openTaskModal();
   const fe=document.getElementById('financialAddExpenseBtn'); if(fe)fe.onclick=()=>openExpenseModal();
   const fe2=document.getElementById('financialAddExpenseBtn2'); if(fe2)fe2.onclick=()=>openExpenseModal();
+  if(currentView==='roi') bindROI();
 
   document.querySelectorAll('[data-photo-open]').forEach(el=>{el.onclick=e=>{if(e.target.closest('button'))return;openPhotoLightbox(el.dataset.photoOpen);};el.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openPhotoLightbox(el.dataset.photoOpen);}};});
   document.querySelectorAll('[data-download-photo]').forEach(b=>b.onclick=e=>{e.stopPropagation();downloadProjectPhoto(b.dataset.downloadPhoto);});
