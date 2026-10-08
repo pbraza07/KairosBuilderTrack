@@ -1,6 +1,6 @@
-# Kairos Legacy Homes — Investor Project Portal v2.8
+# Kairos Legacy Homes — Investor Project Portal v2.9
 
-## v2.8 — Investor-focused login experience
+## v2.9 — Investor-focused login experience
 
 - Removed all visible demo/access credential information from the login page.
 - Reworked the landing-page message around investor confidence, transparency, capital visibility, approvals, and construction milestones.
@@ -186,18 +186,26 @@ Older photos remain compatible. Replacing a legacy photo through Edit will autom
 The Overview page now shows the 10 phases immediately preceding the active phase, the current phase, and the next upcoming phase, in chronological order. This keeps the dashboard focused on recent work and what happens next instead of always showing the first phases in the project.
 
 
-## v2.8 browser quota fix
+## v2.9 browser quota fix
 - PostgreSQL/server state remains authoritative.
 - Browser localStorage now keeps only a lightweight cache and never stores base64 construction-photo payloads.
 - If an older browser cache is already full, the app automatically replaces it with a compact cache.
 - A local browser cache quota error can no longer block a successful login or cloud save.
 
 
-## v2.8 ROI Projection
+## v2.9 ROI Projection
 Adds an investor-facing ROI Projection tab with editable sale-price, private-loan payoff, seller transaction costs, equity basis, a fixed 10% Kairos partner/coordinator commission on positive profit, sale-proceeds waterfall, projected investor net profit, cash returned, and ROI. Admin assumptions persist to the shared database; investor what-if edits remain session-only.
 
 
-## v2.8 changes
+## v2.9 changes
 - ROI defaults: Closing / title / escrow = 2% of projected sale price.
 - ROI defaults: Documentary stamp / transfer taxes = 1% of projected sale price.
 - Schedule List and Admin phase Status badges now use the same bright status colors as the Overview phase list: completed lime green, current bright yellow, past due bright red, upcoming bright orange.
+
+
+## v2.9 Photo calendar enhancements
+- Project photos are grouped by the exact calendar day selected during upload.
+- Administrators can add another photo directly to an existing day group and the upload form is prefilled with that date.
+- Editing a photo date automatically moves it to the correct calendar-day group.
+- Photo cards display a calendar date badge.
+- The full-screen viewer sorts photos by calendar date and prominently updates the date whenever Previous/Next is used.

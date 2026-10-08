@@ -154,7 +154,13 @@ const PT_UI = Object.freeze({
   'Edit':'Editar',
   'Delete phase':'Excluir fase',
   'Project photos':'Fotos do projeto',
-  'Progress documentation organized by project and phase. Select any photo to enlarge it, move through the gallery, or download a copy.':'Documentação do progresso organizada por projeto e fase. Selecione qualquer foto para ampliá-la, navegar pela galeria ou baixar uma cópia.',
+  'Progress documentation organized by calendar day and project phase. Select any photo to enlarge it, move through the gallery, or download a copy.':'Documentação do progresso organizada por dia do calendário e fase do projeto. Selecione qualquer foto para ampliá-la, navegar pela galeria ou baixar uma cópia.',
+  'Photos are grouped by the calendar day selected at upload. The date follows each photo as you browse.':'As fotos são agrupadas pelo dia do calendário selecionado no envio. A data acompanha cada foto durante a navegação.',
+  'Calendar day':'Dia do calendário',
+  'The photo will appear under this specific day in the project gallery.':'A foto aparecerá neste dia específico na galeria do projeto.',
+  'Add photo for this day':'Adicionar foto neste dia',
+  'photos':'fotos',
+  'photo':'foto',
   'Add photo':'Adicionar foto',
   'No photos have been uploaded for this project yet.':'Nenhuma foto foi enviada para este projeto ainda.',
   'Project update':'Atualização do projeto',
@@ -1137,23 +1143,52 @@ function safeDownloadName(ph){
   const base=String(ph?.title||ph?.originalName||'project-photo').replace(/[^a-z0-9-_]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,80)||'project-photo';
   const mime=String(ph?.mime||''); const ext=mime.includes('webp')?'webp':mime.includes('png')?'png':mime.includes('svg')?'svg':'jpg'; return `${base}.${ext}`;
 }
+function sortedProjectPhotos(project=currentProject()){
+  const photos=project?.photos||[];
+  return photos.map((ph,index)=>({ph,index})).sort((a,b)=>String(b.ph.date||'').localeCompare(String(a.ph.date||'')) || b.index-a.index).map(x=>x.ph);
+}
+function groupedProjectPhotos(project=currentProject()){
+  const groups=[];
+  sortedProjectPhotos(project).forEach(ph=>{
+    const date=ph.date||todayISO();
+    let group=groups.find(g=>g.date===date);
+    if(!group){group={date,photos:[]};groups.push(group);}
+    group.photos.push(ph);
+  });
+  return groups;
+}
+function photoCalendarParts(date){
+  const d=date?new Date(`${date}T12:00:00`):new Date();
+  const loc=localeCode();
+  return {
+    month:d.toLocaleDateString(loc,{month:'short'}).replace('.','').toUpperCase(),
+    day:String(d.getDate()),
+    weekday:d.toLocaleDateString(loc,{weekday:'short'}).replace('.',''),
+    long:d.toLocaleDateString(loc,{weekday:'long',month:'long',day:'numeric',year:'numeric'})
+  };
+}
+function photoDateStamp(date){
+  const d=photoCalendarParts(date);
+  return `<span class="photo-date-stamp"><b>${escapeHtml(d.month)}</b><strong>${escapeHtml(d.day)}</strong></span>`;
+}
 function downloadProjectPhoto(photoId){
   const ph=currentProject()?.photos.find(x=>x.id===photoId); if(!ph?.url)return;
   const a=document.createElement('a'); a.href=ph.url; a.download=safeDownloadName(ph); document.body.appendChild(a); a.click(); a.remove();
 }
 function openPhotoLightbox(photoId){
   const p=currentProject(); if(!p)return;
-  const photos=p.photos.slice().reverse(); let index=photos.findIndex(x=>x.id===photoId); if(index<0)return;
+  const photos=sortedProjectPhotos(p); let index=photos.findIndex(x=>x.id===photoId); if(index<0)return;
   const wrap=document.createElement('div'); wrap.className='photo-lightbox'; wrap.setAttribute('role','dialog'); wrap.setAttribute('aria-modal','true');
-  wrap.innerHTML=`<div class="lightbox-stage"><button class="lightbox-close" aria-label="Close">${svgIcon('close')}</button><button class="lightbox-nav prev" aria-label="Previous photo">‹</button><img class="lightbox-image" alt=""><button class="lightbox-nav next" aria-label="Next photo">›</button><div class="lightbox-footer"><div><strong class="lightbox-title"></strong><span class="lightbox-meta"></span></div><button class="btn btn-lightbox-download">${svgIcon('download')} Download</button></div></div>`;
+  wrap.innerHTML=`<div class="lightbox-stage"><button class="lightbox-close" aria-label="Close">${svgIcon('close')}</button><button class="lightbox-nav prev" aria-label="Previous photo">‹</button><img class="lightbox-image" alt=""><button class="lightbox-nav next" aria-label="Next photo">›</button><div class="lightbox-footer"><div class="lightbox-info"><span class="lightbox-date"></span><strong class="lightbox-title"></strong><span class="lightbox-meta"></span></div><button class="btn btn-lightbox-download">${svgIcon('download')} Download</button></div></div>`;
   document.body.appendChild(wrap); applyLanguage(wrap); document.body.classList.add('lightbox-open');
-  const img=wrap.querySelector('.lightbox-image'),title=wrap.querySelector('.lightbox-title'),meta=wrap.querySelector('.lightbox-meta'),prev=wrap.querySelector('.prev'),next=wrap.querySelector('.next'),dl=wrap.querySelector('.btn-lightbox-download');
-  const draw=()=>{const ph=photos[index];img.src=ph.url;img.alt=ph.title||'Project photo';title.textContent=ph.title?localizedPhaseName(ph.title):translateVisibleText('Project photo');meta.textContent=`${ph.phase?localizedPhotoPhase(ph.phase):translateVisibleText('Project update')} · ${fmtDate(ph.date)} · ${index+1} ${currentLanguage==='pt'?'de':'of'} ${photos.length}`;prev.disabled=photos.length<2;next.disabled=photos.length<2;dl.onclick=()=>downloadProjectPhoto(ph.id);};
+  const img=wrap.querySelector('.lightbox-image'),title=wrap.querySelector('.lightbox-title'),dateEl=wrap.querySelector('.lightbox-date'),meta=wrap.querySelector('.lightbox-meta'),prev=wrap.querySelector('.prev'),next=wrap.querySelector('.next'),dl=wrap.querySelector('.btn-lightbox-download');
+  const draw=()=>{const ph=photos[index];const parts=photoCalendarParts(ph.date);img.src=ph.url;img.alt=ph.title||'Project photo';dateEl.textContent=parts.long;title.textContent=ph.title?localizedPhaseName(ph.title):translateVisibleText('Project photo');meta.textContent=`${ph.phase?localizedPhotoPhase(ph.phase):translateVisibleText('Project update')} · ${index+1} ${currentLanguage==='pt'?'de':'of'} ${photos.length}`;prev.disabled=photos.length<2;next.disabled=photos.length<2;dl.onclick=()=>downloadProjectPhoto(ph.id);};
   const close=()=>{document.removeEventListener('keydown',keys);document.body.classList.remove('lightbox-open');wrap.remove();};
   const move=delta=>{index=(index+delta+photos.length)%photos.length;draw();};
   const keys=e=>{if(e.key==='Escape')close();if(e.key==='ArrowLeft'&&photos.length>1)move(-1);if(e.key==='ArrowRight'&&photos.length>1)move(1);};
   wrap.querySelector('.lightbox-close').onclick=close; prev.onclick=()=>move(-1); next.onclick=()=>move(1); wrap.onclick=e=>{if(e.target===wrap)close();}; document.addEventListener('keydown',keys); draw();
 }
+
 function notificationCenterTemplate(){
   const u=currentUser(),pending=pendingApprovalItems(),history=expenseHistoryItems().slice(0,12);
   return `<div class="notification-summary"><strong>${pending.length}</strong><span>${pending.length===1?'expense is':'expenses are'} waiting for ${u?.role==='client'?'your':'client'} approval</span></div><div class="notification-list">${pending.map(({project,expense})=>`<div class="notification-card"><div class="notification-icon">${svgIcon('money')}</div><div class="notification-copy"><strong>${escapeHtml(localizedExpenseCategory(expense.cat))}</strong><span>${escapeHtml(project.name)} · ${money(expense.amount)}</span><small>Requested ${fmtDateTime(expense.approvalRequestedAt)}</small></div>${u?.role==='client'?`<div class="notification-actions"><button class="btn btn-soft btn-compact" data-expense-decision="rejected" data-expense-id="${expense.id}" data-expense-project="${project.id}">Not approve</button><button class="btn btn-primary btn-compact" data-expense-decision="approved" data-expense-id="${expense.id}" data-expense-project="${project.id}">${svgIcon('check')} Approve</button></div>`:'<span class="approval-badge approval-pending">Awaiting client</span>'}</div>`).join('')||'<div class="empty compact-empty">No expense approvals are waiting.</div>'}</div><div class="notification-history-head"><strong>Recent expense activity</strong></div><div class="notification-history">${history.map(({project,history:h})=>`<div><span class="history-dot ${h.status==='approved'?'ok':h.status==='rejected'?'no':''}"></span><p><strong>${escapeHtml(h.action||'Expense activity')}</strong><small>${escapeHtml(project.name)} · ${escapeHtml(localizedExpenseCategory(h.category||'Expense'))} ${h.amount?`· ${money(h.amount)}`:''}<br>${escapeHtml(h.actorName||'System')} · ${fmtDateTime(h.at)}</small></p></div>`).join('')||'<div class="muted">No expense history yet.</div>'}</div>`;
@@ -1295,7 +1330,7 @@ function overviewTemplate(p){
   return `<div class="page-head"><div><h1>Project overview</h1><p>Your investor dashboard for construction milestones, capital deployed, budget position, approvals, and the latest project progress.</p>${synced}</div><div class="head-actions"><button class="btn btn-outline" data-goto="photos">View latest photos</button><button class="btn btn-primary" data-goto="schedule">Open schedule</button></div></div>
 <div class="hero-card card"><div class="eyebrow">${p.status}</div><h2>${p.name}</h2><p>${p.summary}</p><div class="hero-meta"><div><strong>${p.address}</strong><span>Project location</span></div><div><strong>${fmtDate(p.start)}</strong><span>Construction start</span></div><div><strong>${fmtDate(p.target)}</strong><span>Target completion</span></div><div><strong>${fmtDate(p.lastUpdate)}</strong><span>Last project update</span></div></div></div>
 <div class="grid grid-4" style="margin-top:18px"><div class="card metric"><span class="label">Project completion</span><div class="value">${p.completion}%</div><div class="progress"><span style="width:${p.completion}%"></span></div><div class="metric-icon">${svgIcon('schedule')}</div></div><div class="card metric"><span class="label">Invested to date</span><div class="value">${money(p.invested)}</div><div class="delta">${p.budget?Math.round((p.invested/p.budget)*100):0}% of project budget</div><div class="metric-icon">${svgIcon('money')}</div></div><div class="card metric"><span class="label">Remaining budget</span><div class="value">${money(remaining)}</div><div class="muted" style="font-size:12px">Total budget ${money(p.budget)}</div></div><div class="card metric"><span class="label">Current / next phase</span><div class="value" style="font-size:19px;line-height:1.3">${next?escapeHtml(localizedPhaseName(next.name)):translateVisibleText('Project Complete')}</div><div class="muted" style="font-size:12px">${next?taskStatusLabel(next):'All milestones complete'}</div></div></div>
-<div class="grid grid-2" style="margin-top:18px"><div class="card"><div class="card-head"><div><h3>Construction phases</h3><span class="muted overview-phase-caption">10 previous phases + current + next upcoming phase</span></div><span class="muted">${p.tasks.filter(x=>taskStatus(x)==='done').length} of ${p.tasks.length} completed</span></div>${overviewPhases.map(t=>phaseRow(t,Math.max(0,timelineOrder.indexOf(t)))).join('')||'<div class="empty">No construction phases yet.</div>'}</div><div class="card"><div class="card-head"><h3>Latest project photos</h3><button class="btn btn-soft" data-goto="photos">View all</button></div><div class="gallery" style="grid-template-columns:1fr 1fr">${p.photos.slice(-4).reverse().map(photoCard).join('')||'<div class="empty">No photos uploaded yet.</div>'}</div></div></div>`;
+<div class="grid grid-2" style="margin-top:18px"><div class="card"><div class="card-head"><div><h3>Construction phases</h3><span class="muted overview-phase-caption">10 previous phases + current + next upcoming phase</span></div><span class="muted">${p.tasks.filter(x=>taskStatus(x)==='done').length} of ${p.tasks.length} completed</span></div>${overviewPhases.map(t=>phaseRow(t,Math.max(0,timelineOrder.indexOf(t)))).join('')||'<div class="empty">No construction phases yet.</div>'}</div><div class="card"><div class="card-head"><h3>Latest project photos</h3><button class="btn btn-soft" data-goto="photos">View all</button></div><div class="gallery" style="grid-template-columns:1fr 1fr">${sortedProjectPhotos(p).slice(0,4).map(photoCard).join('')||'<div class="empty">No photos uploaded yet.</div>'}</div></div></div>`;
 }
 
 function phaseRow(t,i){
@@ -1428,17 +1463,17 @@ function listScheduleTemplate(p){
 
 function photosTemplate(p){
   const admin=currentUser().role==='admin';
-  return `<div class="page-head"><div><h1>Project photos</h1><p>Progress documentation organized by project and phase. Select any photo to enlarge it, move through the gallery, or download a copy.</p></div>${admin?`<button class="btn btn-primary" id="addPhotoBtn">${svgIcon('plus')} Add photo</button>`:''}</div><div class="card"><div class="gallery">${p.photos.slice().reverse().map(ph=>photoCard(ph,admin)).join('')||'<div class="empty">No photos have been uploaded for this project yet.</div>'}</div></div>`;
+  const groups=groupedProjectPhotos(p);
+  const body=groups.map(group=>{
+    const parts=photoCalendarParts(group.date);
+    return `<section class="photo-day-group"><div class="photo-day-header"><div class="photo-calendar-chip"><span>${escapeHtml(parts.month)}</span><strong>${escapeHtml(parts.day)}</strong><small>${escapeHtml(parts.weekday)}</small></div><div class="photo-day-copy"><strong>${escapeHtml(parts.long)}</strong><span>${group.photos.length} ${currentLanguage==='pt'?(group.photos.length===1?'foto':'fotos'):(group.photos.length===1?'photo':'photos')}</span></div>${admin?`<button class="btn btn-soft btn-compact" data-add-photo-date="${attr(group.date)}">${svgIcon('plus')} Add photo for this day</button>`:''}</div><div class="gallery photo-day-gallery">${group.photos.map(ph=>photoCard(ph,admin)).join('')}</div></section>`;
+  }).join('');
+  return `<div class="page-head"><div><h1>Project photos</h1><p>Progress documentation organized by calendar day and project phase. Select any photo to enlarge it, move through the gallery, or download a copy.</p><div class="photo-calendar-note">${svgIcon('schedule')} <span>Photos are grouped by the calendar day selected at upload. The date follows each photo as you browse.</span></div></div>${admin?`<button class="btn btn-primary" id="addPhotoBtn">${svgIcon('plus')} Add photo</button>`:''}</div><div class="card photo-timeline">${body||'<div class="empty">No photos have been uploaded for this project yet.</div>'}</div>`;
 }
 function photoCard(ph,admin=false){
-  return `<div class="photo photo-clickable" data-photo-open="${ph.id}" tabindex="0" role="button" aria-label="Open ${attr(ph.title||'project photo')}"><img src="${ph.url}" alt="${escapeHtml(ph.title)}"><div class="photo-overlay"><strong>${escapeHtml(localizedPhaseName(ph.title))}</strong><span>${escapeHtml(ph.phase?localizedPhotoPhase(ph.phase):translateVisibleText('Project update'))} · ${fmtDate(ph.date)}</span><small>Click to enlarge</small></div><div class="photo-view-actions"><button class="icon-action light" title="Download photo" data-download-photo="${ph.id}">${svgIcon('download')}</button>${admin?`<button class="icon-action light" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action light danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button>`:''}</div></div>`;
+  return `<div class="photo photo-clickable" data-photo-open="${ph.id}" tabindex="0" role="button" aria-label="Open ${attr(ph.title||'project photo')}">${photoDateStamp(ph.date)}<img src="${ph.url}" alt="${escapeHtml(ph.title)}"><div class="photo-overlay"><strong>${escapeHtml(localizedPhaseName(ph.title))}</strong><span>${escapeHtml(ph.phase?localizedPhotoPhase(ph.phase):translateVisibleText('Project update'))} · ${fmtDate(ph.date)}</span><small>Click to enlarge</small></div><div class="photo-view-actions"><button class="icon-action light" title="Download photo" data-download-photo="${ph.id}">${svgIcon('download')}</button>${admin?`<button class="icon-action light" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action light danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button>`:''}</div></div>`;
 }
 
-function aggregateExpenseCategories(expenses=[]){
-  const map=new Map();
-  expenses.forEach(e=>{ const cat=String(e.cat||'Other').trim()||'Other'; map.set(cat,(map.get(cat)||0)+(Number(e.amount)||0)); });
-  return [...map.entries()].map(([cat,amount])=>({cat,amount})).sort((a,b)=>b.amount-a.amount);
-}
 function financialTemplate(p){
   const admin=currentUser().role==='admin',client=!admin;
   const pct=p.budget?Math.min(100,Math.round((p.invested/p.budget)*100)):0;
@@ -1598,7 +1633,7 @@ function adminEditorTemplate(p){
   <div class="table-wrap"><table class="table"><thead><tr><th>Code</th><th>Phase</th><th>Category</th><th>Dates</th><th>Progress</th><th>Status</th><th>Actions</th></tr></thead><tbody>${groupedTasks(p.tasks).flatMap(g=>g.items).map(t=>`<tr><td>${escapeHtml(t.code||'—')}</td><td><strong>${escapeHtml(localizedPhaseName(t.name))}</strong></td><td><span class="category-admin-chip" style="${categoryChipStyle(taskCategory(t))}">${escapeHtml(taskCategory(t))}</span></td><td>${fmtDate(t.start)} → ${fmtDate(t.end)}</td><td><span class="mini-progress">${Math.max(0,Math.min(100,Number(t.progress)||0))}%</span></td><td><span class="pill phase-status-pill ${taskStatusClass(t)}">${taskStatusLabel(t)}</span></td><td><div class="action-group phase-actions"><button class="btn btn-soft btn-compact" title="Edit construction phase" data-edit-task="${t.id}">${svgIcon('edit')} Edit phase</button><button class="icon-action danger" title="Delete phase" data-delete-task="${t.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="7" class="muted">No construction phases yet.</td></tr>'}</tbody></table></div></div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project photos</h3><span class="muted">${p.photos.length} uploaded photos · edit title, date, phase, or replace the image</span></div><button class="btn btn-soft" id="adminAddPhotoBtn2">${svgIcon('plus')} Add photo</button></div>
-  <div class="table-wrap"><table class="table"><thead><tr><th>Photo</th><th>Title</th><th>Phase</th><th>Date</th><th>Storage</th><th>Actions</th></tr></thead><tbody>${p.photos.slice().reverse().map(ph=>`<tr><td><img class="table-thumb clickable-thumb" data-photo-open="${ph.id}" src="${ph.url}" alt="${attr(ph.title||'Project photo')}"></td><td><strong>${escapeHtml(localizedPhaseName(ph.title))}</strong></td><td>${escapeHtml(ph.phase?localizedPhotoPhase(ph.phase):'—')}</td><td>${fmtDate(ph.date)}</td><td><span class="storage-size">${ph.optimizedBytes?humanBytes(ph.optimizedBytes):'Legacy image'}</span></td><td><div class="action-group"><button class="icon-action" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="muted">No photos uploaded yet.</td></tr>'}</tbody></table></div></div>
+  <div class="table-wrap"><table class="table"><thead><tr><th>Photo</th><th>Title</th><th>Phase</th><th>Date</th><th>Storage</th><th>Actions</th></tr></thead><tbody>${sortedProjectPhotos(p).map(ph=>`<tr><td><img class="table-thumb clickable-thumb" data-photo-open="${ph.id}" src="${ph.url}" alt="${attr(ph.title||'Project photo')}"></td><td><strong>${escapeHtml(localizedPhaseName(ph.title))}</strong></td><td>${escapeHtml(ph.phase?localizedPhotoPhase(ph.phase):'—')}</td><td>${fmtDate(ph.date)}</td><td><span class="storage-size">${ph.optimizedBytes?humanBytes(ph.optimizedBytes):'Legacy image'}</span></td><td><div class="action-group"><button class="icon-action" title="Edit photo" data-edit-photo="${ph.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete photo" data-delete-photo="${ph.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="6" class="muted">No photos uploaded yet.</td></tr>'}</tbody></table></div></div>
 
   <div class="admin-subsection"><div class="card-head"><div><h3>Project expenses</h3><span class="muted">${p.expenses.length} entries · invested total ${money(p.invested)}</span></div><button class="btn btn-soft" id="addExpenseBtn2">${svgIcon('plus')} Add expense</button></div>${expenseTableTemplate(p,true)}</div>`;
 }
@@ -1608,6 +1643,7 @@ function bindView(){
   document.querySelectorAll('[data-smode]').forEach(b=>b.onclick=()=>{scheduleMode=b.dataset.smode;renderView();});
   document.querySelectorAll('[data-gscale]').forEach(b=>b.onclick=()=>{ganttScale=b.dataset.gscale;renderView();});
   const addPhoto=document.getElementById('addPhotoBtn'); if(addPhoto)addPhoto.onclick=()=>openPhotoModal();
+  document.querySelectorAll('[data-add-photo-date]').forEach(b=>b.onclick=()=>openPhotoModal(null,b.dataset.addPhotoDate||todayISO()));
   const si=document.getElementById('scheduleImportBtn'); if(si)si.onclick=openScheduleImportModal;
   const sap=document.getElementById('scheduleAddPhaseBtn'); if(sap)sap.onclick=()=>openTaskModal();
   const fe=document.getElementById('financialAddExpenseBtn'); if(fe)fe.onclick=()=>openExpenseModal();
@@ -1950,7 +1986,7 @@ function openTaskModal(task=null){
   });
 }
 
-function openPhotoModal(photo=null){
+function openPhotoModal(photo=null,prefillDate=''){
   const p=currentProject(); if(!p)return;
   const editing=!!photo;
   const phaseOptions=p.tasks.map(t=>t.name).filter(Boolean);
@@ -1958,7 +1994,7 @@ function openPhotoModal(photo=null){
   modal(editing?'Edit project photo':'Add project photo',`<form id="photoForm"><div class="form-grid">
     ${editing&&photo.url?`<div class="field full"><label>Current image</label><img class="modal-photo-preview" src="${photo.url}" alt=""></div>`:''}
     <div class="field full"><label>Photo title</label><input class="input" name="title" value="${attr(photo?.title||'')}" required></div>
-    <div class="field"><label>Date</label><input class="input" type="date" name="date" value="${photo?.date||todayISO()}" required></div>
+    <div class="field"><label>Calendar day</label><input class="input" type="date" name="date" value="${photo?.date||prefillDate||todayISO()}" required><small class="muted">The photo will appear under this specific day in the project gallery.</small></div>
     <div class="field"><label>Project phase</label><input class="input" name="phase" list="phaseNames" value="${attr(photo?.phase||'')}" placeholder="Framing, HVAC, Exterior…"><datalist id="phaseNames">${phaseOptions.map(x=>`<option value="${attr(x)}"></option>`).join('')}</datalist></div>
     <div class="field full"><label>${editing?'Replace image (optional)':'Image file'}</label><input class="input" type="file" name="file" accept="image/jpeg,image/png,image/webp,image/*" ${editing?'':'required'}>
       <small class="muted">${editing?'Leave empty to keep the current image. ':''}Kairos automatically resizes and compresses each upload to WebP when supported. The target is about 350 KB per photo, with a 1,600 px maximum edge and a quality floor designed to keep construction details clear.${existingSize?` Current optimized size: <b>${humanBytes(existingSize)}</b>.`:''}</small>
