@@ -33,6 +33,7 @@ const MIME_TYPES = {
 let pool = null;
 let shared = null;
 let storageMode = 'file';
+let writeChain = Promise.resolve();
 
 function isPersistentStorage() {
   return storageMode === 'postgres' || (storageMode === 'file' && Boolean(process.env.DATA_DIR));
@@ -87,6 +88,12 @@ function defaultSharedState() {
   };
 }
 
+function normalizeProjectTasks(project) {
+  project.tasks = (Array.isArray(project.tasks) ? project.tasks : []).map(task =>
+    task.id ? task : { ...task, id: `t-${crypto.randomUUID()}` }
+  );
+}
+
 function normalizeStoredShared(value) {
   if (!value || typeof value !== 'object') return defaultSharedState();
   value.meta = value.meta || {};
@@ -108,7 +115,7 @@ function normalizeStoredShared(value) {
     u.role = u.role === 'admin' ? 'admin' : 'client';
   });
   value.data.projects.forEach(p => {
-    p.tasks = Array.isArray(p.tasks) ? p.tasks : [];
+    normalizeProjectTasks(p);
     p.photos = Array.isArray(p.photos) ? p.photos : [];
     p.expenses = Array.isArray(p.expenses) ? p.expenses : [];
     p.expenseHistory = Array.isArray(p.expenseHistory) ? p.expenseHistory : [];
@@ -170,37 +177,47 @@ async function initStorage() {
   await persistShared('startup');
 }
 
-async function createDatabaseBackup(reason = 'save') {
-  if (storageMode !== 'postgres' || !pool || !shared) return;
-  await pool.query(
+async function createDatabaseBackup(reason = 'save', db = pool, snapshot = shared) {
+  if (storageMode !== 'postgres' || !db || !snapshot) return;
+  await db.query(
     'INSERT INTO kairos_portal_backups (payload, reason, created_at) VALUES ($1::jsonb, $2, NOW())',
-    [JSON.stringify(shared), String(reason).slice(0, 120)]
+    [JSON.stringify(snapshot), String(reason).slice(0, 120)]
   );
   // Keep a generous rolling safety history without allowing unlimited growth.
-  await pool.query(`DELETE FROM kairos_portal_backups
+  await db.query(`DELETE FROM kairos_portal_backups
     WHERE backup_id NOT IN (
       SELECT backup_id FROM kairos_portal_backups ORDER BY backup_id DESC LIMIT 250
     )`);
 }
 
-async function persistShared(reason = 'save') {
+async function persistShared(reason = 'save', snapshot = shared) {
   ensureWritablePersistentStorage();
-  shared.meta = shared.meta || {};
-  shared.meta.updatedAt = new Date().toISOString();
-  shared.meta.storage = storageMode;
+  snapshot.meta = snapshot.meta || {};
+  snapshot.meta.updatedAt = new Date().toISOString();
+  snapshot.meta.storage = storageMode;
   if (storageMode === 'postgres') {
-    await pool.query(
-      `INSERT INTO kairos_portal_state (id, payload, updated_at)
-       VALUES (1, $1::jsonb, NOW())
-       ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`,
-      [JSON.stringify(shared)]
-    );
-    await createDatabaseBackup(reason);
+    const db = await pool.connect();
+    try {
+      await db.query('BEGIN');
+      await db.query(
+        `INSERT INTO kairos_portal_state (id, payload, updated_at)
+         VALUES (1, $1::jsonb, NOW())
+         ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`,
+        [JSON.stringify(snapshot)]
+      );
+      await createDatabaseBackup(reason, db, snapshot);
+      await db.query('COMMIT');
+    } catch (error) {
+      await db.query('ROLLBACK');
+      throw error;
+    } finally {
+      db.release();
+    }
     return;
   }
   fs.mkdirSync(DATA_DIR, { recursive: true });
   const tmp = `${DATA_FILE}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(shared, null, 2), 'utf8');
+  fs.writeFileSync(tmp, JSON.stringify(snapshot, null, 2), 'utf8');
   fs.renameSync(tmp, DATA_FILE);
 }
 
@@ -310,7 +327,7 @@ function normalizeIncomingState(raw) {
   const admin = data.users.find(u => u.role === 'admin');
   if (!admin) throw Object.assign(new Error('State must contain an administrator account'), { statusCode: 400 });
   data.projects.forEach(p => {
-    p.tasks = Array.isArray(p.tasks) ? p.tasks : [];
+    normalizeProjectTasks(p);
     p.photos = Array.isArray(p.photos) ? p.photos : [];
     p.expenses = Array.isArray(p.expenses) ? p.expenses : [];
     p.expenseHistory = Array.isArray(p.expenseHistory) ? p.expenseHistory : [];
@@ -357,11 +374,54 @@ function recordDeletionAudit({ type, id, projectId = '', actor }) {
   if (shared.meta.deletionAudit.length > 500) shared.meta.deletionAudit = shared.meta.deletionAudit.slice(-500);
 }
 
+function scheduleDuration(start, end) {
+  return Math.max(1, (Date.parse(end) - Date.parse(start)) / 86400000 + 1 || 1);
+}
+
 function serverScheduleCompletion(tasks = []) {
-  if (!tasks.length) return 0;
-  const weighted = tasks.reduce((sum, t) => sum + Math.max(1, Number(t.duration) || 1) * Math.max(0, Math.min(100, Number(t.progress) || 0)), 0);
-  const total = tasks.reduce((sum, t) => sum + Math.max(1, Number(t.duration) || 1), 0);
+  let total = 0;
+  let weighted = 0;
+  for (const task of tasks) {
+    const duration = Math.max(1, Number(task.duration) || scheduleDuration(task.start, task.end));
+    const progress = task.status === 'done' ? 100 : Math.max(0, Math.min(100, Number(task.progress) || 0));
+    total += duration;
+    weighted += duration * progress;
+  }
   return total ? Math.round(weighted / total) : 0;
+}
+
+function scheduleDate(value) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    && Number.isFinite(Date.parse(value)) && new Date(value).toISOString().slice(0, 10) === value;
+}
+
+function percentage(value) {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100;
+}
+
+function phaseValues(values, create) {
+  const { start, end, progress, duration, statusOverride } = values;
+  const textFields = ['code', 'name', 'category', 'trade', 'notes'];
+  if (textFields.some(key => typeof values[key] !== 'string') || !values.name.trim() || !values.category.trim()) {
+    throw Object.assign(new Error('Enter a phase name and category.'), { statusCode: 400 });
+  }
+  if (!((!create && start === '') || scheduleDate(start)) || !((!create && end === '') || scheduleDate(end)) || (start && end && end < start)) {
+    throw Object.assign(new Error('Enter valid phase dates with the finish on or after the start.'), { statusCode: 400 });
+  }
+  if (!percentage(progress) || (duration !== null && (!Number.isSafeInteger(duration) || duration < 1))) {
+    throw Object.assign(new Error('Enter progress from 0 to 100 and a positive whole number for duration.'), { statusCode: 400 });
+  }
+  if (!['', 'done', 'current', 'overdue', 'upcoming'].includes(statusOverride) ||
+      (statusOverride && statusOverride !== 'done' && progress === 100)) {
+    throw Object.assign(new Error('A phase at 100% progress must be marked Complete or Automatic.'), { statusCode: 400 });
+  }
+  return {
+    ...Object.fromEntries(textFields.map(key => [key, values[key].trim()])),
+    start, end, duration: duration ?? scheduleDuration(start, end), manualDuration: duration !== null,
+    progress: statusOverride === 'done' ? 100 : progress,
+    status: statusOverride || (progress === 100 ? 'done' : progress > 0 ? 'current' : 'upcoming'),
+    statusOverride
+  };
 }
 
 function mergeProtectedWorkflowState(incomingData) {
@@ -415,7 +475,7 @@ function applyCredentialUpdates(data, passwordUpdates, { preserveAdminId = null 
   shared.credentials = nextCredentials;
 }
 
-async function handleApi(req, res, pathname) {
+async function handleApi(req, res, pathname, mutationBody) {
   if (pathname === '/api/status' && req.method === 'GET') {
     return sendJson(res, 200, {
       ok: true,
@@ -470,7 +530,7 @@ async function handleApi(req, res, pathname) {
   if (pathname === '/api/state' && req.method === 'PUT') {
     if (user.role !== 'admin') return sendJson(res, 403, { error: 'Administrator access required' });
     ensureWritablePersistentStorage();
-    const body = await readJson(req);
+    const body = mutationBody;
     const { data, passwordUpdates } = normalizeIncomingState(body.state);
     mergeProtectedWorkflowState(data);
     const mergedData = mergeIncomingStatePreservingExisting(data, body.intent || {});
@@ -481,10 +541,49 @@ async function handleApi(req, res, pathname) {
     return sendJson(res, 200, { ok: true, updatedAt: shared.meta.updatedAt, state: shared.data });
   }
 
+  if (pathname === '/api/admin/schedule' && req.method === 'PUT') {
+    if (user.role !== 'admin') return sendJson(res, 403, { error: 'Administrator access required' });
+    ensureWritablePersistentStorage();
+    const { projectId, phaseId, create = false, values } = mutationBody;
+    const project = shared.data.projects.find(p => p.id === projectId);
+    if (!project) return sendJson(res, 404, { error: 'Project not found' });
+    if (!values || typeof values !== 'object') return sendJson(res, 400, { error: 'Schedule changes are required.' });
+
+    const nextProject = { ...project, lastUpdate: new Date().toISOString().slice(0, 10) };
+    if (typeof phaseId === 'string' && phaseId) {
+      const existing = project.tasks.find(t => t.id === phaseId);
+      if (!existing && !create) return sendJson(res, 404, { error: 'This phase was removed. Reopen the schedule to refresh the list.' });
+      const updated = { ...existing, ...phaseValues(values, create), id: phaseId };
+      nextProject.tasks = existing
+        ? project.tasks.map(t => t.id === phaseId ? updated : t)
+        : [...project.tasks, updated];
+      const completion = serverScheduleCompletion(nextProject.tasks);
+      if (!existing || completion !== serverScheduleCompletion(project.tasks)) nextProject.completion = completion;
+    } else {
+      const { start, target, status, completion } = values;
+      if ((start !== '' && !scheduleDate(start)) || (target !== '' && !scheduleDate(target)) || (start && target && target < start)) {
+        return sendJson(res, 400, { error: 'Enter valid project dates with the target on or after the start.' });
+      }
+      if (!percentage(completion) || typeof status !== 'string' ||
+          (!['Pre-Construction', 'In Construction', 'Punch List', 'Complete'].includes(status) && status !== project.status)) {
+        return sendJson(res, 400, { error: 'Enter a project status and completion from 0 to 100.' });
+      }
+      Object.assign(nextProject, { start, target, status, completion });
+    }
+    const nextShared = {
+      ...shared,
+      meta: { ...shared.meta, initialized: true },
+      data: { ...shared.data, projects: shared.data.projects.map(p => p.id === projectId ? nextProject : p) }
+    };
+    await persistShared('admin-schedule', nextShared);
+    shared = nextShared;
+    return sendJson(res, 200, { ok: true, state: stateForUser(user) });
+  }
+
   if (pathname === '/api/admin/delete' && req.method === 'POST') {
     if (user.role !== 'admin') return sendJson(res, 403, { error: 'Administrator access required' });
     ensureWritablePersistentStorage();
-    const body = await readJson(req);
+    const body = mutationBody;
     const type = String(body.type || '');
     const id = String(body.id || '');
     const projectId = String(body.projectId || '');
@@ -550,7 +649,7 @@ async function handleApi(req, res, pathname) {
 
   if (pathname === '/api/expense-decision' && req.method === 'POST') {
     if (user.role !== 'client') return sendJson(res, 403, { error: 'Client access required for expense decisions' });
-    const body = await readJson(req);
+    const body = mutationBody;
     const projectId = String(body.projectId || '');
     const expenseId = String(body.expenseId || '');
     const decision = String(body.decision || '').toLowerCase();
@@ -601,7 +700,7 @@ async function handleApi(req, res, pathname) {
     if (shared.meta.initialized) {
       return sendJson(res, 409, { error: 'Shared portal data is already initialized. Migration was not applied.' });
     }
-    const body = await readJson(req);
+    const body = mutationBody;
     const { data, passwordUpdates } = normalizeIncomingState(body.state);
     const incomingAdmin = data.users.find(u => u.role === 'admin' && (u.id === user.id || String(u.email).toLowerCase() === String(user.email).toLowerCase()));
     if (!incomingAdmin) return sendJson(res, 400, { error: 'The local data does not contain the signed-in administrator.' });
@@ -654,12 +753,21 @@ async function start() {
     const pathname = decodeURIComponent(parsed.pathname || '/');
 
     if (pathname === '/health' || pathname === '/healthz') {
-      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '2.9.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
+      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '2.10.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
     }
 
     if (pathname.startsWith('/api/')) {
       try {
-        return await handleApi(req, res, pathname);
+        if (req.method === 'GET' || pathname === '/api/login' || pathname === '/api/logout') {
+          return await handleApi(req, res, pathname);
+        }
+        // Read the request before joining the write queue so slow uploads cannot block other saves.
+        if (!sessionUser(req)) return sendJson(res, 401, { error: 'Session expired. Please sign in again.' });
+        const mutationBody = await readJson(req);
+        // Serialize mutations so a schedule update cannot race a deletion or another save.
+        const write = writeChain.then(() => handleApi(req, res, pathname, mutationBody));
+        writeChain = write.catch(() => {});
+        return await write;
       } catch (err) {
         const status = Number(err.statusCode) || 500;
         console.error('API error:', err);

@@ -27,6 +27,22 @@ const PT_UI = Object.freeze({
   'Private access for authorized Kairos Legacy Homes investors and project clients.':'Acesso privado para investidores e clientes de projeto autorizados da Kairos Legacy Homes.',
   'Overview':'Visão geral',
   'Schedule':'Cronograma',
+  'Edit schedule':'Editar cronograma',
+  'Edit schedule details':'Editar detalhes do cronograma',
+  'Project status':'Status do projeto',
+  'Project completion %':'Conclusão do projeto %',
+  'Phase updates that change calculated completion can recalculate the project percentage.':'Atualizações nas fases que alterarem a conclusão calculada podem recalcular a porcentagem do projeto.',
+  'Schedule updated':'Cronograma atualizado',
+  'Saving…':'Salvando…',
+  'Automatic':'Automático',
+  'Clear the duration to calculate it from the dates.':'Deixe a duração em branco para calculá-la a partir das datas.',
+  'Enter a phase name.':'Informe o nome da fase.',
+  'A phase at 100% progress must be marked Complete or Automatic.':'Uma fase com progresso de 100% deve estar marcada como Concluída ou Automática.',
+  'Enter valid phase dates with the finish on or after the start.':'Informe datas válidas para a fase, com término na data de início ou depois.',
+  'Enter valid project dates with the target on or after the start.':'Informe datas válidas para o projeto, com conclusão prevista na data de início ou depois.',
+  'This phase was removed. Reopen the schedule to refresh the list.':'Esta fase foi removida. Reabra o cronograma para atualizar a lista.',
+  'Unable to save schedule changes. Please try again.':'Não foi possível salvar as alterações do cronograma. Tente novamente.',
+
   'Photos':'Fotos',
   'Investment':'Investimento',
   'ROI Projection':'Projeção de ROI',
@@ -838,7 +854,8 @@ function groupedTasks(tasks=[]){
   return [...groups.entries()].sort((a,b)=>categoryRank(a[0])-categoryRank(b[0])).map(([category,items])=>({category,items:items.slice().sort((a,b)=>(a.start||'9999').localeCompare(b.start||'9999') || String(a.code||'').localeCompare(String(b.code||'')))}));
 }
 function phaseCategoryOptions(selected=''){
-  return `<option value="">Auto-detect from phase name</option>${PHASE_CATEGORIES.map(c=>`<option value="${attr(c)}" ${selected===c?'selected':''}>${escapeHtml(c)}</option>`).join('')}`;
+  const categories=selected&&!PHASE_CATEGORIES.includes(selected)?[...PHASE_CATEGORIES,selected]:PHASE_CATEGORIES;
+  return `<option value="">Auto-detect from phase name</option>${categories.map(c=>`<option value="${attr(c)}" ${selected===c?'selected':''}>${escapeHtml(c)}</option>`).join('')}`;
 }
 
 const seed = {
@@ -1079,6 +1096,7 @@ async function optimizeProjectPhoto(file,onProgress=()=>{}){
   return {url:dataUrl,mime:best.mime,bytes:best.blob.size,originalBytes:file.size,width:best.width,height:best.height,quality:best.quality,originalName:file.name||'photo'};
 }
 function taskStatus(t){
+  if(t.statusOverride)return t.statusOverride;
   if(Number(t.progress)>=100 || t.status==='done') return 'done';
   if(Number(t.progress)>0) return 'current';
   const today=todayISO();
@@ -1341,7 +1359,7 @@ function scheduleTemplate(p){
   const admin=currentUser().role==='admin';
   const src=p.scheduleSource;
   const scaleToggle=scheduleMode==='gantt'?`<div class="schedule-scale-wrap"><span>Schedule view</span><div class="tabs scale-tabs"><button data-gscale="month" class="${ganttScale==='month'?'active':''}">Monthly</button><button data-gscale="week" class="${ganttScale==='week'?'active':''}">Weekly</button></div></div>`:'';
-  return `<div class="page-head"><div><h1>Construction schedule</h1><p>Follow every construction phase and planned work from start through turnover.</p>${src?`<div class="schedule-source"><span>${svgIcon('file')}</span><span>${currentLanguage==='pt'?`Última sincronização com Excel: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} fases`:`Last Excel sync: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} phases`}</span></div>`:''}</div><div class="head-actions">${admin?`<button class="btn btn-soft" id="scheduleAddPhaseBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="scheduleImportBtn">${svgIcon('upload')} Import Excel</button>`:''}<div class="tabs"><button data-smode="gantt" class="${scheduleMode==='gantt'?'active':''}">Gantt</button><button data-smode="list" class="${scheduleMode==='list'?'active':''}">List</button></div>${scaleToggle}</div></div><div class="card">${scheduleMode==='gantt'?ganttTemplate(p):listScheduleTemplate(p)}</div>`;
+  return `<div class="page-head"><div><h1>Construction schedule</h1><p>Follow every construction phase and planned work from start through turnover.</p>${src?`<div class="schedule-source"><span>${svgIcon('file')}</span><span>${currentLanguage==='pt'?`Última sincronização com Excel: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} fases`:`Last Excel sync: <strong>${fmtDate(src.importedDate)}</strong> · ${src.rows} phases`}</span></div>`:''}</div><div class="head-actions">${admin?`<button class="btn btn-primary" id="editScheduleBtn">${svgIcon('edit')} Edit schedule</button><button class="btn btn-soft" id="scheduleAddPhaseBtn">${svgIcon('plus')} Add phase</button><button class="btn btn-outline" id="scheduleImportBtn">${svgIcon('upload')} Import Excel</button>`:''}<div class="tabs"><button data-smode="gantt" class="${scheduleMode==='gantt'?'active':''}">Gantt</button><button data-smode="list" class="${scheduleMode==='list'?'active':''}">List</button></div>${scaleToggle}</div></div><div class="schedule-project-dates"><span><strong>Start date</strong> ${fmtDate(p.start)}</span><span><strong>Target completion</strong> ${fmtDate(p.target)}</span><span><strong>Project status</strong> <span>${escapeHtml(p.status||'—')}</span></span><span><strong>Project completion</strong> ${Number(p.completion)||0}%</span></div><div class="card">${scheduleMode==='gantt'?ganttTemplate(p):listScheduleTemplate(p)}</div>`;
 }
 function monthStartFromISO(s){ const d=new Date(s+'T12:00:00'); return new Date(d.getFullYear(),d.getMonth(),1); }
 function monthDiff(a,b){ return (b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth()); }
@@ -1399,6 +1417,7 @@ function nextPhaseAfterCurrentId(tasks=[]){
   return next?.id || null;
 }
 function ganttTemplate(p){
+  const admin=currentUser().role==='admin';
   const dated=p.tasks.filter(t=>t.start&&t.end);
   if(!dated.length) return '<div class="empty">No dated construction phases yet. Import a project schedule or add phases manually.</div>';
   const groups=groupedTasks(dated);
@@ -1445,7 +1464,7 @@ function ganttTemplate(p){
       const theme=categoryTheme(taskCategory(t));
       const barStyle=`left:${placement.leftPct}%;width:${placement.widthPct}%;--category-color:${theme.solid};--category-accent:${theme.accent};`;
       const barClass=`${st}${isNextPhase?' next':''}`;
-      return `<div class="gantt-row" style="grid-template-columns:${template};--months:${unitCount}"><div class="label"><strong>${escapeHtml(t.code||String(i+1))} · ${escapeHtml(localizedPhaseName(t.name))}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)} · ${taskStatusLabel(t)}</span></div><div class="gantt-grid" style="grid-template-columns:${unitTemplate}">${Array(unitCount).fill('<i></i>').join('')}</div><div class="gantt-bar-layer"><div class="bar ${barClass}" style="${barStyle}" title="${attr(localizedPhaseName(t.name))}: ${fmtDate(t.start)} – ${fmtDate(t.end)} · ${attr(phaseDurationLabel(t))}"><span class="bar-days" aria-label="${attr(phaseDurationLabel(t))}">${escapeHtml(label)}</span></div></div></div>`;
+      return `<div class="gantt-row" style="grid-template-columns:${template};--months:${unitCount}"><div class="label"><strong>${escapeHtml(t.code||String(i+1))} · ${escapeHtml(localizedPhaseName(t.name))}</strong><span>${fmtDate(t.start)} – ${fmtDate(t.end)} · ${taskStatusLabel(t)}</span>${admin?`<button class="btn btn-soft btn-compact gantt-edit" title="Edit phase" data-edit-task="${attr(t.id)}">${svgIcon('edit')} Edit phase</button>`:''}</div><div class="gantt-grid" style="grid-template-columns:${unitTemplate}">${Array(unitCount).fill('<i></i>').join('')}</div><div class="gantt-bar-layer"><div class="bar ${barClass}" style="${barStyle}" title="${attr(localizedPhaseName(t.name))}: ${fmtDate(t.start)} – ${fmtDate(t.end)} · ${attr(phaseDurationLabel(t))}"><span class="bar-days" aria-label="${attr(phaseDurationLabel(t))}">${escapeHtml(label)}</span></div></div></div>`;
     }).join('');
     return `<div class="gantt-category-row" style="grid-template-columns:${template};${groupStyle}"><div><strong>${escapeHtml(group.category)}</strong><span>${group.items.length} ${currentLanguage==='pt'?(group.items.length===1?'fase':'fases'):(group.items.length===1?'phase':'phases')}</span></div><div class="gantt-category-line"></div></div>${groupRows}`;
   }).join('');
@@ -1644,6 +1663,7 @@ function bindView(){
   document.querySelectorAll('[data-gscale]').forEach(b=>b.onclick=()=>{ganttScale=b.dataset.gscale;renderView();});
   const addPhoto=document.getElementById('addPhotoBtn'); if(addPhoto)addPhoto.onclick=()=>openPhotoModal();
   document.querySelectorAll('[data-add-photo-date]').forEach(b=>b.onclick=()=>openPhotoModal(null,b.dataset.addPhotoDate||todayISO()));
+  const editSchedule=document.getElementById('editScheduleBtn'); if(editSchedule)editSchedule.onclick=openScheduleDetailsModal;
   const si=document.getElementById('scheduleImportBtn'); if(si)si.onclick=openScheduleImportModal;
   const sap=document.getElementById('scheduleAddPhaseBtn'); if(sap)sap.onclick=()=>openTaskModal();
   const fe=document.getElementById('financialAddExpenseBtn'); if(fe)fe.onclick=()=>openExpenseModal();
@@ -1873,7 +1893,7 @@ async function parseScheduleWorkbook(file){
     const finalDuration=duration||daysBetweenInclusive(start,end);
     tasks.push({
       id:uid('xls'),code:phase.code,name:phase.name,category:inferPhaseCategory(phase.name,phase.code),start,end,duration:finalDuration,
-      progress:complete?100:0,status:statusForImportedTask(complete,start,end),sourceRow:r+1
+      progress:complete?100:0,status:statusForImportedTask(complete,start,end),manualDuration:duration>0,sourceRow:r+1
     });
   }
   if(!tasks.length) throw new Error('The schedule sheet was found, but no rows had both a valid Start and End date.');
@@ -1885,7 +1905,7 @@ function mergeScheduleTasks(existing,imported){
   const used=new Set();
   const merged=imported.map(t=>{
     const key=scheduleTaskKey(t),old=oldMap.get(key); used.add(key);
-    return old?{...old,...t,id:old.id}:{...t};
+    return old?{...old,...t,id:old.id,statusOverride:'',manualDuration:t.manualDuration}:{...t};
   });
   existing.forEach(t=>{ const key=scheduleTaskKey(t); if(!used.has(key))merged.push(t); });
   return merged;
@@ -1957,32 +1977,95 @@ function undoLastScheduleImport(){
   saveState({replaceTasksFor:[p.id]}); renderView(); toast('Previous project schedule restored');
 }
 
+function bindScheduleSave(w,close,request,successMessage,readValues){
+  const form=w.querySelector('form'), save=form.querySelector('button[type="submit"]');
+  const error=w.querySelector('[role="alert"]'), closeButton=w.querySelector('.close');
+  const fields=form.querySelector('fieldset'), idleLabel=save.textContent;
+  const showError=message=>{error.textContent=translateVisibleText(message);error.hidden=false;};
+  form.onsubmit=async e=>{
+    e.preventDefault();
+    if(save.disabled)return;
+    error.hidden=true;
+    let values;
+    try{values=readValues(new FormData(form));}
+    catch(err){showError(err.message);return;}
+    save.disabled=fields.disabled=closeButton.disabled=true;
+    save.textContent=translateVisibleText('Saving…');
+    const backdropClick=w.onclick;
+    w.onclick=null;
+    try{
+      await sharedSyncChain;
+      const result=await apiJson('/api/admin/schedule',{method:'PUT',body:JSON.stringify({...request,values})});
+      state=normalizeState(result.state);
+      saveLocalState();
+      close();
+      renderView();
+      toast(successMessage);
+    }catch(err){
+      showError(err.status>=500?'Unable to save schedule changes. Please try again.':err.message||'Unable to save schedule changes. Please try again.');
+      save.disabled=fields.disabled=closeButton.disabled=false;
+      save.textContent=idleLabel;
+      w.onclick=backdropClick;
+    }
+  };
+}
+
+function openScheduleDetailsModal(){
+  const p=currentProject();
+  if(!p||currentUser()?.role!=='admin')return;
+  const statuses=['Pre-Construction','In Construction','Punch List','Complete'];
+  if(p.status&&!statuses.includes(p.status))statuses.push(p.status);
+  modal('Edit schedule details',`<form><fieldset class="schedule-fields"><div class="form-grid">
+    <div class="field"><label for="scheduleStart">Start date</label><input class="input" id="scheduleStart" type="date" name="start" value="${attr(p.start||'')}"></div>
+    <div class="field"><label for="scheduleTarget">Target completion</label><input class="input" id="scheduleTarget" type="date" name="target" value="${attr(p.target||'')}"></div>
+    <div class="field"><label for="scheduleStatus">Project status</label><select class="select" id="scheduleStatus" name="status">${statuses.map(status=>`<option value="${attr(status)}" ${p.status===status?'selected':''}>${escapeHtml(status)}</option>`).join('')}</select></div>
+    <div class="field"><label for="scheduleCompletion">Project completion %</label><input class="input" id="scheduleCompletion" type="number" min="0" max="100" step="any" name="completion" value="${Number(p.completion)||0}" required></div>
+    <div class="field full"><small class="muted">Phase updates that change calculated completion can recalculate the project percentage.</small></div>
+  </div></fieldset><p class="schedule-save-error" role="alert" hidden></p><div class="form-actions"><button type="submit" class="btn btn-primary">Save changes</button></div></form>`,(w,close)=>{
+    bindScheduleSave(w,close,{projectId:p.id},'Schedule updated',f=>{
+      const start=f.get('start'),target=f.get('target');
+      if(start&&target&&target<start)throw new Error('Enter valid project dates with the target on or after the start.');
+      return {start,target,status:f.get('status'),completion:Number(f.get('completion'))};
+    });
+  });
+}
+
 function openTaskModal(task=null){
-  const p=currentProject(); if(!p)return;
+  const p=currentProject(); if(!p||currentUser()?.role!=='admin')return;
   const editing=!!task;
-  modal(editing?'Edit construction phase':'Add construction phase',`<form id="taskForm"><div class="phase-edit-note">${editing?'Changes made here update this individual phase only and sync to the assigned client.':'Add a single phase manually. Excel imports can still replace or merge the full schedule later.'}</div><div class="form-grid">
-    <div class="field"><label>Phase code</label><input class="input" name="code" placeholder="e.g. 340" value="${attr(task?.code||'')}" required></div>
-    <div class="field"><label>Phase / trade name</label><input class="input" name="name" value="${attr(task?.name||'')}" required></div>
-    <div class="field full"><label>Broader construction category</label><select class="select" name="category">${phaseCategoryOptions(task?.category||'')}</select><small class="muted">Leave on Auto-detect to categorize from the phase name. You can override it for any individual phase.</small></div>
-    <div class="field"><label>Start date</label><input class="input" type="date" name="start" value="${task?.start||''}" required></div>
-    <div class="field"><label>Finish date</label><input class="input" type="date" name="end" value="${task?.end||''}" required></div>
-    <div class="field"><label>Progress %</label><input class="input" type="number" min="0" max="100" name="progress" value="${Number(task?.progress)||0}" required></div>
-    <div class="field"><label>Duration (days)</label><input class="input" type="number" min="1" name="duration" value="${task?Number(task.duration)||daysBetweenInclusive(task.start,task.end):''}" placeholder="Calculated from dates"></div>
-    <div class="field"><label>Responsible trade / contractor</label><input class="input" name="trade" value="${attr(task?.trade||'')}" placeholder="Optional"></div>
-    <div class="field full"><label>Phase notes</label><textarea class="textarea" name="notes" placeholder="Optional investor-facing update or admin note">${escapeHtml(task?.notes||'')}</textarea></div>
-  </div><div class="form-actions"><button class="btn btn-primary">${editing?'Save phase changes':'Add phase'}</button></div></form>`,(w,close)=>{
-    w.querySelector('#taskForm').onsubmit=e=>{
-      e.preventDefault(); const f=new FormData(e.target);
-      const prog=Math.max(0,Math.min(100,+f.get('progress')||0)),start=f.get('start'),end=f.get('end');
-      if(start && end && end<start){toast('Finish date cannot be before the start date');return}
-      const duration=Math.max(1,+f.get('duration')||daysBetweenInclusive(start,end));
-      const code=String(f.get('code')||'').trim(),name=String(f.get('name')||'').trim();
-      const category=String(f.get('category')||'').trim() || inferPhaseCategory(name,code);
-      const values={code,name,category,start,end,duration,progress:prog,trade:String(f.get('trade')||'').trim(),notes:String(f.get('notes')||'').trim(),status:prog===100?'done':prog>0?'current':statusForImportedTask(false,start,end)};
-      if(editing)Object.assign(task,values); else p.tasks.push({id:uid('t'),...values});
-      p.tasks.sort((a,b)=>(a.start||'9999').localeCompare(b.start||'9999') || String(a.code||'').localeCompare(String(b.code||'')));
-      p.completion=scheduleCompletion(p.tasks); p.lastUpdate=todayISO(); saveState(); close(); renderView(); toast(editing?'Phase updated':'Phase added');
-    };
+  const phaseId=task?.id||uid('t');
+  const status=task?.statusOverride||(task?.status==='done'&&Number(task.progress)<100?'done':'');
+  const statuses=[['','Automatic'],['done','Complete'],['current','In progress'],['overdue','Past due'],['upcoming','Upcoming']];
+  const manualDuration=task?.manualDuration??(task&&Number(task.duration)!==daysBetweenInclusive(task.start,task.end));
+  const duration=manualDuration?Number(task.duration)||'':'';
+  modal(editing?'Edit construction phase':'Add construction phase',`<form><div class="phase-edit-note">${editing?'Changes made here update this individual phase only and sync to the assigned client.':'Add a single phase manually. Excel imports can still replace or merge the full schedule later.'}</div><fieldset class="schedule-fields"><div class="form-grid">
+    <div class="field"><label for="phaseCode">Phase code</label><input class="input" id="phaseCode" name="code" placeholder="e.g. 340" value="${attr(task?.code||'')}"></div>
+    <div class="field"><label for="phaseName">Phase / trade name</label><input class="input" id="phaseName" name="name" value="${attr(task?.name||'')}" required></div>
+    <div class="field full"><label for="phaseCategory">Broader construction category</label><select class="select" id="phaseCategory" name="category">${phaseCategoryOptions(task?.category||'')}</select><small class="muted">Leave on Auto-detect to categorize from the phase name. You can override it for any individual phase.</small></div>
+    <div class="field"><label for="phaseStart">Start date</label><input class="input" id="phaseStart" type="date" name="start" value="${attr(task?.start||'')}" ${!editing||task.start?'required':''}></div>
+    <div class="field"><label for="phaseEnd">Finish date</label><input class="input" id="phaseEnd" type="date" name="end" value="${attr(task?.end||'')}" ${!editing||task.end?'required':''}></div>
+    <div class="field"><label for="phaseStatus">Status</label><select class="select" id="phaseStatus" name="statusOverride">${statuses.map(([value,label])=>`<option value="${value}" ${status===value?'selected':''}>${label}</option>`).join('')}</select></div>
+    <div class="field"><label for="phaseProgress">Progress %</label><input class="input" id="phaseProgress" type="number" min="0" max="100" step="any" name="progress" value="${status==='done'?100:Number(task?.progress)||0}" required></div>
+    <div class="field"><label for="phaseDuration">Duration (days)</label><input class="input" id="phaseDuration" type="number" min="1" name="duration" value="${duration}" placeholder="Calculated from dates"><small class="muted">Clear the duration to calculate it from the dates.</small></div>
+    <div class="field"><label for="phaseTrade">Responsible trade / contractor</label><input class="input" id="phaseTrade" name="trade" value="${attr(task?.trade||'')}" placeholder="Optional"></div>
+    <div class="field full"><label for="phaseNotes">Phase notes</label><textarea class="textarea" id="phaseNotes" name="notes" placeholder="Optional investor-facing update or admin note">${escapeHtml(task?.notes||'')}</textarea></div>
+  </div></fieldset><p class="schedule-save-error" role="alert" hidden></p><div class="form-actions"><button type="submit" class="btn btn-primary">${editing?'Save phase changes':'Add phase'}</button></div></form>`,(w,close)=>{
+    const statusField=w.querySelector('#phaseStatus'),progressField=w.querySelector('#phaseProgress');
+    statusField.onchange=()=>{if(statusField.value==='done')progressField.value=100;};
+    progressField.oninput=()=>{if(statusField.value==='done'&&Number(progressField.value)!==100)statusField.value='';};
+    bindScheduleSave(w,close,{projectId:p.id,phaseId,create:!editing},editing?'Phase updated':'Phase added',f=>{
+      const start=f.get('start'),end=f.get('end'),code=f.get('code').trim(),name=f.get('name').trim();
+      if(!name)throw new Error('Enter a phase name.');
+      if(start&&end&&end<start)throw new Error('Finish date cannot be before the start date');
+      const progress=Number(f.get('progress')),statusOverride=f.get('statusOverride');
+      if(progress===100&&statusOverride&&statusOverride!=='done')throw new Error('A phase at 100% progress must be marked Complete or Automatic.');
+      return {
+        code,name,start,end,progress,statusOverride,
+        category:f.get('category')||inferPhaseCategory(name,code),
+        duration:f.get('duration')===''?null:Number(f.get('duration')),
+        trade:f.get('trade').trim(),notes:f.get('notes').trim()
+      };
+    });
   });
 }
 

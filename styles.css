@@ -245,3 +245,10 @@ body.lightbox-open{overflow:hidden}.photo-lightbox{position:fixed;inset:0;z-inde
 .phase-status.status-overdue,.pill.phase-status-pill.status-overdue{background:#ff3b30!important;color:#fff!important;border:1px solid #d92f27!important}
 .phase-status.status-plan,.pill.phase-status-pill.status-plan{background:#ff8a00!important;color:#fff!important;border:1px solid #dc7500!important}
 .phase-status,.phase-status-pill{font-weight:800;box-shadow:0 1px 0 rgba(0,0,0,.04)}
+
+.schedule-project-dates{display:flex;flex-wrap:wrap;gap:8px 20px;margin:0 0 16px;color:var(--muted);font-size:12px}
+.schedule-project-dates strong{color:var(--ink);margin-right:4px}
+.gantt-row .label .gantt-edit{display:flex;width:max-content;margin-top:5px}
+.gantt-row .label:has(.gantt-edit){padding-block:7px}
+.schedule-fields{border:0;margin:0;padding:0;min-inline-size:0}
+.schedule-save-error{color:#a22e24;font-size:13px;margin:12px 0 0}

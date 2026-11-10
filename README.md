@@ -1,4 +1,10 @@
-# Kairos Legacy Homes — Investor Project Portal v2.9
+# Kairos Legacy Homes — Investor Project Portal v2.10
+
+## v2.10 — Administrator schedule editing
+
+- Open **Schedule → Edit schedule** to update the project start date, target completion date, status, and completion percentage.
+- Use **Edit phase** on Gantt, or **Edit** on List, to update an individual phase. List includes phases without dates. The editor covers code, name, category, start and finish, duration, status, progress, trade or contractor, and notes.
+- Leave duration blank to calculate it from the dates. Choose **Automatic** to derive the phase status from its dates and progress. Saves are confirmed by the server before the form closes.
 
 ## v2.9 — Investor-focused login experience
 
