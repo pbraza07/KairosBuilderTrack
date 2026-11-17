@@ -345,7 +345,28 @@ function mergeByIdPreservingMissing(existing = [], incoming = []) {
   return [...out.values()];
 }
 
+function remapProjectAccount(project, fromId, toId) {
+  return {
+    ...project,
+    clientId: project.clientId === fromId ? toId : project.clientId,
+    expenses: (project.expenses || []).map(expense => ({
+      ...expense,
+      approvalRequestedBy: expense.approvalRequestedBy === fromId ? toId : expense.approvalRequestedBy,
+      decisionBy: expense.decisionBy === fromId ? toId : expense.decisionBy
+    })),
+    notifications: (project.notifications || []).map(notification => ({
+      ...notification,
+      targetUserId: notification.targetUserId === fromId ? toId : notification.targetUserId
+    }))
+  };
+}
+
 function mergeIncomingStatePreservingExisting(incomingData, intent = {}) {
+  // Retired identities must stay merged when another browser saves an older snapshot.
+  for (const [fromId, merge] of Object.entries(shared.meta.mergedAccounts || {})) {
+    incomingData.users = incomingData.users.filter(account => account.id !== fromId);
+    incomingData.projects = incomingData.projects.map(project => remapProjectAccount(project, fromId, merge.targetId));
+  }
   const replaceTasksFor = new Set(Array.isArray(intent.replaceTasksFor) ? intent.replaceTasksFor : []);
   const users = mergeByIdPreservingMissing(shared.data.users || [], incomingData.users || []);
   const projectMap = new Map((shared.data.projects || []).map(p => [p.id, p]));
@@ -559,7 +580,7 @@ async function handleApi(req, res, pathname, mutationBody) {
   if (pathname === '/api/admin/accounts' && req.method === 'POST') {
     if (user.role !== 'admin') return sendJson(res, 403, { error: 'Administrator access required' });
     ensureWritablePersistentStorage();
-    const { id, name, email, password = '', currentPassword } = mutationBody;
+    const { id, name, email, password = '', currentPassword, mergeClientId } = mutationBody;
     if (typeof currentPassword !== 'string' || !verifyPassword(shared.credentials[user.id], currentPassword)) {
       return sendJson(res, 400, { error: 'Your current password is incorrect.' });
     }
@@ -570,13 +591,18 @@ async function handleApi(req, res, pathname, mutationBody) {
     if (!accountName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail)) {
       return sendJson(res, 400, { error: 'Enter an administrator name and valid email address.' });
     }
-    if (shared.data.users.some(account => account.id !== existing?.id && String(account.email || '').trim().toLowerCase() === accountEmail)) {
+    const client = mergeClientId ? shared.data.users.find(account => account.id === mergeClientId && account.role === 'client') : null;
+    if (mergeClientId && (!existing || existing.id !== user.id || !client || String(client.email || '').trim().toLowerCase() !== accountEmail)) {
+      return sendJson(res, 400, { error: 'Select the client account matching the email to merge into your own administrator account.' });
+    }
+    if (shared.data.users.some(account => account.id !== existing?.id && account.id !== client?.id && String(account.email || '').trim().toLowerCase() === accountEmail)) {
       return sendJson(res, 409, { error: 'Email already exists' });
     }
     if (typeof password !== 'string' || ((!existing || password !== '') && password.length < 6)) {
       return sendJson(res, 400, { error: 'Administrator passwords must contain at least 6 characters.' });
     }
-    const account = { ...existing, id: existing?.id || `u-${crypto.randomUUID()}`, name: accountName, email: accountEmail, role: 'admin', projectIds: existing?.projectIds || [] };
+    const projectIds = [...new Set([...(existing?.projectIds || []), ...(client?.projectIds || []), ...(client ? shared.data.projects.filter(project => project.clientId === client.id).map(project => project.id) : [])])];
+    const account = { ...client, ...existing, id: existing?.id || `u-${crypto.randomUUID()}`, name: accountName, email: accountEmail, role: 'admin', projectIds };
     const previous = shared.credentials[account.id];
     const credential = password ? passwordRecord(password) : { ...previous };
     credential.version = (Number(previous?.version) || 0) + (existing && (password || existing.email !== accountEmail) ? 1 : 0);
@@ -586,6 +612,15 @@ async function handleApi(req, res, pathname, mutationBody) {
       data: { ...shared.data, users: existing ? shared.data.users.map(item => item.id === account.id ? account : item) : [...shared.data.users, account] },
       credentials: { ...shared.credentials, [account.id]: credential }
     };
+    if (client) {
+      nextShared.data.users = nextShared.data.users.filter(item => item.id !== client.id);
+      nextShared.data.projects = shared.data.projects.map(project => remapProjectAccount(project, client.id, account.id));
+      nextShared.meta.mergedAccounts = {
+        ...shared.meta.mergedAccounts,
+        [client.id]: { targetId: account.id, mergedAt: new Date().toISOString(), mergedBy: user.id, originalAccount: client }
+      };
+      delete nextShared.credentials[client.id];
+    }
     await persistShared(existing ? 'admin-account-update' : 'admin-account-create', nextShared);
     shared = nextShared;
     return sendJson(res, 200, {
@@ -701,7 +736,7 @@ async function handleApi(req, res, pathname, mutationBody) {
   }
 
   if (pathname === '/api/expense-decision' && req.method === 'POST') {
-    if (user.role !== 'client') return sendJson(res, 403, { error: 'Client access required for expense decisions' });
+    if (!['client', 'admin'].includes(user.role)) return sendJson(res, 403, { error: 'Client access required for expense decisions' });
     const body = mutationBody;
     const projectId = String(body.projectId || '');
     const expenseId = String(body.expenseId || '');
@@ -806,7 +841,7 @@ async function start() {
     const pathname = decodeURIComponent(parsed.pathname || '/');
 
     if (pathname === '/health' || pathname === '/healthz') {
-      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '2.11.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
+      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '2.12.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
     }
 
     if (pathname.startsWith('/api/')) {

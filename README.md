@@ -1,4 +1,8 @@
-# Kairos Legacy Homes — Investor Project Portal v2.11
+# Kairos Legacy Homes — Investor Project Portal v2.12
+
+## v2.12 — Preserve client data when merging an administrator login
+
+A confirmed account merge retains project assignments, photos, expenses, and history. The merged administrator remains available as the assigned project client. Previous client sessions are revoked, and older browser saves cannot restore the retired account.
 
 ## v2.11 — Administrator account management
 
