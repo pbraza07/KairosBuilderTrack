@@ -1,4 +1,8 @@
-# Kairos Legacy Homes — Investor Project Portal v2.10
+# Kairos Legacy Homes — Investor Project Portal v2.11
+
+## v2.11 — Administrator account management
+
+Administrators can use **Admin Center → Administrators** to add an administrator or edit an administrator's name, email, and password. New administrator passwords require at least six characters. Each save requires the acting administrator's current password and database confirmation. Email and password changes revoke that administrator's previous sessions. The administrator making a change to their own account receives a refreshed session automatically.
 
 ## v2.10 — Administrator schedule editing
 

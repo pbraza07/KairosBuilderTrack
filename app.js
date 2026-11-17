@@ -27,6 +27,27 @@ const PT_UI = Object.freeze({
   'Private access for authorized Kairos Legacy Homes investors and project clients.':'Acesso privado para investidores e clientes de projeto autorizados da Kairos Legacy Homes.',
   'Overview':'Visão geral',
   'Schedule':'Cronograma',
+  'Administrators':'Administradores',
+  'Add administrator':'Adicionar administrador',
+  'Edit administrator':'Editar administrador',
+  'Edit account / password':'Editar conta / senha',
+  'Only administrators can add administrators and change their passwords.':'Somente administradores podem adicionar administradores e alterar suas senhas.',
+  'Administrator name':'Nome do administrador',
+  'New password':'Nova senha',
+  'Confirm new password':'Confirmar nova senha',
+  'Your current password':'Sua senha atual',
+  'Minimum 6 characters':'Mínimo de 6 caracteres',
+  'Confirm your own password to save administrator changes.':'Confirme sua própria senha para salvar alterações de administradores.',
+  'Passwords do not match.':'As senhas não coincidem.',
+  'Administrator passwords must contain at least 6 characters.':'As senhas de administrador devem conter pelo menos 6 caracteres.',
+  'Your current password is incorrect.':'Sua senha atual está incorreta.',
+  'Enter an administrator name and valid email address.':'Informe o nome do administrador e um endereço de e-mail válido.',
+  'Administrator account not found.':'Conta de administrador não encontrada.',
+  'Administrator added':'Administrador adicionado',
+  'Administrator updated':'Administrador atualizado',
+  'Unable to save administrator changes. Please try again.':'Não foi possível salvar as alterações do administrador. Tente novamente.',
+  'You':'Você',
+
   'Edit schedule':'Editar cronograma',
   'Edit schedule details':'Editar detalhes do cronograma',
   'Project status':'Status do projeto',
@@ -860,7 +881,7 @@ function phaseCategoryOptions(selected=''){
 
 const seed = {
   users:[
-    {id:'u-admin',name:'Plinio Alves',email:'admin@kairoslegacyhomes.com',password:'Kairos2026!',role:'admin',projectIds:['p-001','p-002']},
+    {id:'u-admin',name:'Plinio Alves',email:'admin@kairoslegacyhomes.com',role:'admin',projectIds:['p-001','p-002']},
     {id:'u-001',name:'Michael & Sarah Carter',email:'investor1@demo.com',password:'Investor1!',role:'client',projectIds:['p-001']},
     {id:'u-002',name:'Daniel Brooks',email:'investor2@demo.com',password:'Investor2!',role:'client',projectIds:['p-002']}
   ],
@@ -1630,8 +1651,11 @@ function expenseTableTemplate(p,withActions=false){
 }
 
 function adminTemplate(){
+  if(currentUser()?.role!=='admin')return '';
+  const admins=state.users.filter(u=>u.role==='admin');
   const users=state.users.filter(u=>u.role==='client');
   return `<div class="page-head"><div><h1>Admin center</h1><p>Full editing control for client access, projects, construction phases, photos, expenses, budgets, and schedule imports.</p></div><div class="head-actions"><button class="btn btn-outline" id="newClientBtn">${svgIcon('user')} New client</button><button class="btn btn-primary" id="newProjectBtn">${svgIcon('plus')} New project</button></div></div>
+  <div class="card admin-section admin-accounts"><div class="card-head"><div><h3>Administrators</h3><span class="muted">Only administrators can add administrators and change their passwords.</span></div><button class="btn btn-primary" id="addAdminBtn">${svgIcon('plus')} Add administrator</button></div><div class="admin-accounts-grid">${admins.map(account=>`<div class="admin-account"><strong>${escapeHtml(account.name)}</strong><span>${escapeHtml(account.email)}</span>${account.id===currentUser().id?'<small>You</small>':''}<button class="btn btn-soft" data-edit-admin="${attr(account.id)}">${svgIcon('edit')} Edit account / password</button></div>`).join('')}</div></div>
   <div class="grid grid-4"><div class="card metric"><span class="label">Client accounts</span><div class="value">${users.length}</div></div><div class="card metric"><span class="label">Active projects</span><div class="value">${state.projects.length}</div></div><div class="card metric"><span class="label">Portfolio budget</span><div class="value">${money(state.projects.reduce((a,p)=>a+(Number(p.budget)||0),0))}</div></div><div class="card metric"><span class="label">Capital deployed</span><div class="value">${money(state.projects.reduce((a,p)=>a+(Number(p.invested)||0),0))}</div></div></div>
   <div class="admin-split" style="margin-top:18px"><div class="card list-card"><div class="card-head"><h3>Projects</h3><span class="muted">Select to manage</span></div>${state.projects.map(p=>`<div class="list-item ${p.id===selectedProjectId?'active':''}" data-admin-project="${p.id}"><strong>${escapeHtml(p.name)}</strong><span>${escapeHtml(p.address)} · ${p.completion}% ${currentLanguage==='pt'?'concluído':'complete'}</span></div>`).join('')||'<div class="empty">No projects yet.</div>'}</div><div class="card" id="adminEditor">${adminEditorTemplate(currentProject())}</div></div>
   <div class="card admin-section" style="margin-top:18px"><div class="card-head"><div><h3>Client login accounts</h3><span class="muted">Edit credentials and project access assignments</span></div><button class="btn btn-soft" id="newClientBtn2">${svgIcon('user')} New client</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Client</th><th>Email</th><th>Assigned project(s)</th><th>Role</th><th>Actions</th></tr></thead><tbody>${users.map(u=>`<tr><td><strong>${escapeHtml(u.name)}</strong></td><td>${escapeHtml(u.email)}</td><td class="wrap-cell">${u.projectIds.map(id=>state.projects.find(p=>p.id===id)?.name).filter(Boolean).map(escapeHtml).join(', ')||'None'}</td><td><span class="pill">Client</span></td><td><div class="action-group"><button class="icon-action" title="Edit client" data-edit-user="${u.id}">${svgIcon('edit')}</button><button class="icon-action danger" title="Delete client" data-delete-user="${u.id}">${svgIcon('trash')}</button></div></td></tr>`).join('')||'<tr><td colspan="5" class="muted">No client accounts yet.</td></tr>'}</tbody></table></div></div>`;
@@ -1684,6 +1708,8 @@ function bindView(){
 }
 
 function bindAdmin(){
+  const addAdmin=document.getElementById('addAdminBtn'); if(addAdmin)addAdmin.onclick=()=>openAdminModal();
+  document.querySelectorAll('[data-edit-admin]').forEach(button=>button.onclick=()=>{const account=state.users.find(u=>u.id===button.dataset.editAdmin&&u.role==='admin');if(account)openAdminModal(account);});
   document.querySelectorAll('[data-admin-project]').forEach(x=>x.onclick=()=>{selectedProjectId=x.dataset.adminProject;renderView();});
   const nc=document.getElementById('newClientBtn'); if(nc)nc.onclick=()=>openClientModal();
   const nc2=document.getElementById('newClientBtn2'); if(nc2)nc2.onclick=()=>openClientModal();
@@ -1754,7 +1780,53 @@ async function deleteProject(id){
 
 function modal(title,body,onBind){ const wrap=document.createElement('div');wrap.className='modal-backdrop';wrap.innerHTML=`<div class="modal"><div class="modal-head"><h3>${title}</h3><button class="close" aria-label="Close">×</button></div><div class="modal-body">${body}</div></div>`;document.body.appendChild(wrap);applyLanguage(wrap);const close=()=>wrap.remove();wrap.querySelector('.close').onclick=close;wrap.onclick=e=>{if(e.target===wrap)close()};onBind?.(wrap,close); }
 
+function openAdminModal(account=null){
+  if(currentUser()?.role!=='admin')return;
+  const editing=!!account;
+  modal(editing?'Edit administrator':'Add administrator',`<form id="adminAccountForm"><fieldset class="schedule-fields"><div class="form-grid">
+    <div class="field full"><label for="adminName">Administrator name</label><input class="input" id="adminName" name="name" autocomplete="name" value="${attr(account?.name||'')}" required></div>
+    <div class="field full"><label for="adminEmail">Email</label><input class="input" id="adminEmail" name="email" type="email" autocomplete="username" value="${attr(account?.email||'')}" required></div>
+    <div class="field"><label for="adminPassword">${editing?'New password (optional)':'New password'}</label><input class="input" id="adminPassword" name="password" type="password" autocomplete="new-password" minlength="6" ${editing?'placeholder="Leave blank to keep current password"':'required'}><small class="muted">Minimum 6 characters</small></div>
+    <div class="field"><label for="adminConfirmPassword">Confirm new password</label><input class="input" id="adminConfirmPassword" name="confirmPassword" type="password" autocomplete="new-password" minlength="6" ${editing?'':'required'}></div>
+    <div class="field full"><label for="adminCurrentPassword">Your current password</label><input class="input" id="adminCurrentPassword" name="currentPassword" type="password" autocomplete="current-password" required><small class="muted">Confirm your own password to save administrator changes.</small></div>
+  </div></fieldset><p class="schedule-save-error" role="alert" hidden></p><div class="form-actions"><button class="btn btn-primary" type="submit">${editing?'Save changes':'Add administrator'}</button></div></form>`,(w,close)=>{
+    const form=w.querySelector('form'),fields=form.querySelector('fieldset'),save=form.querySelector('[type="submit"]'),closeButton=w.querySelector('.close'),error=form.querySelector('[role="alert"]');
+    const label=save.textContent;
+    const showError=message=>{error.textContent=translateVisibleText(message);error.hidden=false;};
+    form.onsubmit=async event=>{
+      event.preventDefault();
+      if(save.disabled)return;
+      error.hidden=true;
+      const data=new FormData(form),password=String(data.get('password')||'');
+      if((!editing||password)&&password.length<6){showError('Administrator passwords must contain at least 6 characters.');return;}
+      if(password!==data.get('confirmPassword')){showError('Passwords do not match.');return;}
+      const request={id:account?.id,name:data.get('name'),email:data.get('email'),password,currentPassword:data.get('currentPassword')};
+      const backdropClick=w.onclick;
+      save.disabled=fields.disabled=closeButton.disabled=true;
+      save.textContent=translateVisibleText('Saving…');
+      w.onclick=null;
+      try{
+        await sharedSyncChain;
+        const result=await apiJson('/api/admin/accounts',{method:'POST',body:JSON.stringify(request)});
+        state=normalizeState(result.state);
+        if(result.token){session.token=result.token;saveSession();}
+        saveLocalState();
+        form.reset();
+        close();
+        render();
+        toast(editing?'Administrator updated':'Administrator added');
+      }catch(err){
+        showError(err.status>=500?'Unable to save administrator changes. Please try again.':err.message||'Unable to save administrator changes. Please try again.');
+        save.disabled=fields.disabled=closeButton.disabled=false;
+        save.textContent=label;
+        w.onclick=backdropClick;
+      }
+    };
+  });
+}
+
 function openClientModal(user=null){
+  if(currentUser()?.role!=='admin'||user?.role==='admin')return;
   const editing=!!user;
   const assigned=new Set(user?.projectIds||[]);
   modal(editing?'Edit client login':'Create client login',`<form id="clientForm"><div class="form-grid">

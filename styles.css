@@ -252,3 +252,13 @@ body.lightbox-open{overflow:hidden}.photo-lightbox{position:fixed;inset:0;z-inde
 .gantt-row .label:has(.gantt-edit){padding-block:7px}
 .schedule-fields{border:0;margin:0;padding:0;min-inline-size:0}
 .schedule-save-error{color:#a22e24;font-size:13px;margin:12px 0 0}
+
+.admin-accounts{margin-bottom:18px}
+.admin-accounts .card-head{align-items:flex-start;flex-wrap:wrap;gap:12px}
+.admin-accounts .card-head>div{flex:1;min-width:200px}
+.admin-accounts .card-head .muted{display:block;margin-top:5px;line-height:1.5}
+.admin-accounts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;padding:16px 18px}
+.admin-account{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:16px;border:1px solid var(--line);border-radius:12px;min-width:0}
+.admin-account>strong,.admin-account>span{max-width:100%;overflow-wrap:anywhere}
+.admin-account>span,.admin-account>small{color:var(--muted);font-size:12px}
+.admin-account .btn{margin-top:auto;max-width:100%;white-space:normal;text-align:left}

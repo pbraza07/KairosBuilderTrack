@@ -266,7 +266,8 @@ function base64url(input) {
 }
 
 function makeToken(userId) {
-  const payload = base64url(JSON.stringify({ userId, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 }));
+  const version = Number(shared.credentials[userId]?.version) || 0;
+  const payload = base64url(JSON.stringify({ userId, version, exp: Date.now() + 7 * 24 * 60 * 60 * 1000 }));
   const sig = crypto.createHmac('sha256', Buffer.from(shared.meta.sessionSecret, 'hex')).update(payload).digest('base64url');
   return `${payload}.${sig}`;
 }
@@ -296,6 +297,7 @@ function bearer(req) {
 function sessionUser(req) {
   const parsed = parseToken(bearer(req));
   if (!parsed) return null;
+  if ((Number(parsed.version) || 0) !== (Number(shared.credentials[parsed.userId]?.version) || 0)) return null;
   return shared.data.users.find(u => u.id === parsed.userId) || null;
 }
 
@@ -532,6 +534,19 @@ async function handleApi(req, res, pathname, mutationBody) {
     ensureWritablePersistentStorage();
     const body = mutationBody;
     const { data, passwordUpdates } = normalizeIncomingState(body.state);
+    // Administrator accounts are managed separately so a stale project save cannot
+    // restore an old email, password, or role after an administrator edits an account.
+    data.users = data.users.map(incoming => {
+      const existing = shared.data.users.find(account => account.id === incoming.id);
+      if (existing?.role === 'admin') {
+        passwordUpdates.delete(existing.id);
+        return existing;
+      }
+      if (incoming.role === 'admin') {
+        throw Object.assign(new Error('Use administrator account controls to add an administrator.'), { statusCode: 400 });
+      }
+      return incoming;
+    });
     mergeProtectedWorkflowState(data);
     const mergedData = mergeIncomingStatePreservingExisting(data, body.intent || {});
     applyCredentialUpdates(mergedData, passwordUpdates);
@@ -539,6 +554,44 @@ async function handleApi(req, res, pathname, mutationBody) {
     shared.meta.initialized = true;
     await persistShared('admin-save');
     return sendJson(res, 200, { ok: true, updatedAt: shared.meta.updatedAt, state: shared.data });
+  }
+
+  if (pathname === '/api/admin/accounts' && req.method === 'POST') {
+    if (user.role !== 'admin') return sendJson(res, 403, { error: 'Administrator access required' });
+    ensureWritablePersistentStorage();
+    const { id, name, email, password = '', currentPassword } = mutationBody;
+    if (typeof currentPassword !== 'string' || !verifyPassword(shared.credentials[user.id], currentPassword)) {
+      return sendJson(res, 400, { error: 'Your current password is incorrect.' });
+    }
+    const existing = id ? shared.data.users.find(account => account.id === id && account.role === 'admin') : null;
+    if (id && !existing) return sendJson(res, 404, { error: 'Administrator account not found.' });
+    const accountName = typeof name === 'string' ? name.trim() : '';
+    const accountEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    if (!accountName || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(accountEmail)) {
+      return sendJson(res, 400, { error: 'Enter an administrator name and valid email address.' });
+    }
+    if (shared.data.users.some(account => account.id !== existing?.id && String(account.email || '').trim().toLowerCase() === accountEmail)) {
+      return sendJson(res, 409, { error: 'Email already exists' });
+    }
+    if (typeof password !== 'string' || ((!existing || password !== '') && password.length < 6)) {
+      return sendJson(res, 400, { error: 'Administrator passwords must contain at least 6 characters.' });
+    }
+    const account = { ...existing, id: existing?.id || `u-${crypto.randomUUID()}`, name: accountName, email: accountEmail, role: 'admin', projectIds: existing?.projectIds || [] };
+    const previous = shared.credentials[account.id];
+    const credential = password ? passwordRecord(password) : { ...previous };
+    credential.version = (Number(previous?.version) || 0) + (existing && (password || existing.email !== accountEmail) ? 1 : 0);
+    const nextShared = {
+      ...shared,
+      meta: { ...shared.meta, initialized: true },
+      data: { ...shared.data, users: existing ? shared.data.users.map(item => item.id === account.id ? account : item) : [...shared.data.users, account] },
+      credentials: { ...shared.credentials, [account.id]: credential }
+    };
+    await persistShared(existing ? 'admin-account-update' : 'admin-account-create', nextShared);
+    shared = nextShared;
+    return sendJson(res, 200, {
+      ok: true, state: stateForUser(user),
+      ...(account.id === user.id ? { token: makeToken(user.id) } : {})
+    });
   }
 
   if (pathname === '/api/admin/schedule' && req.method === 'PUT') {
@@ -753,7 +806,7 @@ async function start() {
     const pathname = decodeURIComponent(parsed.pathname || '/');
 
     if (pathname === '/health' || pathname === '/healthz') {
-      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '2.10.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
+      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '2.11.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
     }
 
     if (pathname.startsWith('/api/')) {
