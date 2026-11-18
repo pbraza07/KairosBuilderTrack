@@ -2,7 +2,7 @@
 
 ## v2.13 — Reliable schedule saves
 
-Database connection failures no longer crash the portal. Database operations and browser requests have time limits; failed saves preserve the form and allow another attempt. Successful schedule edits are confirmed only after the transaction commits.
+Database connection failures no longer crash the portal. Database operations and browser requests have time limits; failed saves preserve the form and allow another attempt. Schedule changes update only schedule fields in PostgreSQL, avoiding re-uploading all project photos. Recovery snapshots copy stored data within PostgreSQL at most once per hour. Startup reads existing data without creating another full copy. Successful schedule edits are confirmed only after the transaction commits.
 
 ## v2.12 — Preserve client data when merging an administrator login
 

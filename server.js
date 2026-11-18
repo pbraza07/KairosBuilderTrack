@@ -132,9 +132,9 @@ async function initStorage() {
       connectionString: DATABASE_URL,
       connectionTimeoutMillis: 5000,
       idleTimeoutMillis: 10000,
-      statement_timeout: 10000,
-      query_timeout: 12000,
-      idle_in_transaction_session_timeout: 15000,
+      statement_timeout: 30000,
+      query_timeout: 35000,
+      idle_in_transaction_session_timeout: 40000,
       keepAlive: true
     });
     // pg removes failed idle clients; handle the event so a dropped connection
@@ -154,7 +154,7 @@ async function initStorage() {
     const row = await pool.query('SELECT payload FROM kairos_portal_state WHERE id = 1');
     if (row.rows.length) {
       shared = normalizeStoredShared(row.rows[0].payload);
-      await persistShared('startup-normalization');
+      // Normalization is committed with the next real edit; do not rewrite all photos at startup.
     } else {
       shared = defaultSharedState();
       await pool.query(
@@ -190,9 +190,13 @@ async function initStorage() {
 
 async function createDatabaseBackup(reason = 'save', db = pool, snapshot = shared) {
   if (storageMode !== 'postgres' || !db || !snapshot) return;
+  // Copy the already-stored JSON inside PostgreSQL rather than sending and
+  // parsing every photo again. Limit automatic snapshots to one per hour.
   await db.query(
-    'INSERT INTO kairos_portal_backups (payload, reason, created_at) VALUES ($1::jsonb, $2, NOW())',
-    [JSON.stringify(snapshot), String(reason).slice(0, 120)]
+    `INSERT INTO kairos_portal_backups (payload, reason, created_at)
+     SELECT payload, $1, NOW() FROM kairos_portal_state WHERE id = 1
+     AND NOT EXISTS (SELECT 1 FROM kairos_portal_backups WHERE created_at > NOW() - INTERVAL '1 hour')`,
+    [String(reason).slice(0, 120)]
   );
   // Keep a generous rolling safety history without allowing unlimited growth.
   await db.query(`DELETE FROM kairos_portal_backups
@@ -201,7 +205,7 @@ async function createDatabaseBackup(reason = 'save', db = pool, snapshot = share
     )`);
 }
 
-async function persistShared(reason = 'save', snapshot = shared) {
+async function persistShared(reason = 'save', snapshot = shared, schedulePatch = null) {
   ensureWritablePersistentStorage();
   snapshot.meta = snapshot.meta || {};
   snapshot.meta.updatedAt = new Date().toISOString();
@@ -213,13 +217,29 @@ async function persistShared(reason = 'save', snapshot = shared) {
     db.on('error', onConnectionError);
     try {
       await db.query('BEGIN');
-      await db.query(
-        `INSERT INTO kairos_portal_state (id, payload, updated_at)
-         VALUES (1, $1::jsonb, NOW())
-         ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`,
-        [JSON.stringify(snapshot)]
-      );
       await createDatabaseBackup(reason, db, snapshot);
+      if (schedulePatch) {
+        // Patch only changed schedule fields. Re-submitting the entire project
+        // photo collection exhausted the small database during JSON parsing.
+        const projectIndex = shared.data.projects.findIndex(p => p.id === schedulePatch.id);
+        const fields = ['tasks', 'start', 'target', 'status', 'completion', 'lastUpdate'];
+        const changes = Object.fromEntries(fields.filter(field => Object.prototype.hasOwnProperty.call(schedulePatch, field)).map(field => [field, schedulePatch[field]]));
+        const projectPath = ['data', 'projects', String(projectIndex)];
+        const result = await db.query(
+          `UPDATE kairos_portal_state
+           SET payload = jsonb_set(payload, $1::text[], (payload #> $1::text[]) || $2::jsonb, false), updated_at = NOW()
+           WHERE id = 1 AND payload #>> ($1::text[] || ARRAY['id']) = $3`,
+          [projectPath, JSON.stringify(changes), schedulePatch.id]
+        );
+        if (result.rowCount !== 1) throw new Error('Stored project state is missing');
+      } else {
+        await db.query(
+          `INSERT INTO kairos_portal_state (id, payload, updated_at)
+           VALUES (1, $1::jsonb, NOW())
+           ON CONFLICT (id) DO UPDATE SET payload = EXCLUDED.payload, updated_at = NOW()`,
+          [JSON.stringify(snapshot)]
+        );
+      }
       await db.query('COMMIT');
     } catch (error) {
       // Preserve the original failure and evict this client. A broken connection
@@ -681,7 +701,7 @@ async function handleApi(req, res, pathname, mutationBody) {
       meta: { ...shared.meta, initialized: true },
       data: { ...shared.data, projects: shared.data.projects.map(p => p.id === projectId ? nextProject : p) }
     };
-    await persistShared('admin-schedule', nextShared);
+    await persistShared('admin-schedule', nextShared, nextProject);
     shared = nextShared;
     return sendJson(res, 200, { ok: true, state: stateForUser(user) });
   }
