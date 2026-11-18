@@ -971,10 +971,19 @@ function loadState(){ try{ return normalizeState(JSON.parse(localStorage.getItem
 function authHeaders(){ return session?.token?{'Authorization':`Bearer ${session.token}`}:{ }; }
 async function apiJson(path,options={}){
   const headers={'Content-Type':'application/json',...(options.headers||{}),...authHeaders()};
-  const res=await fetch(path,{...options,headers});
-  let body={}; try{ body=await res.json(); }catch{}
-  if(!res.ok){ const err=new Error(body.error||`Request failed (${res.status})`); err.status=res.status; throw err; }
-  return body;
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),60000);
+  try{
+    const res=await fetch(path,{...options,headers,signal:controller.signal});
+    let body={}; try{ body=await res.json(); }catch(err){ if(controller.signal.aborted)throw err; }
+    if(!res.ok){ const err=new Error(body.error||`Request failed (${res.status})`); err.status=res.status; throw err; }
+    return body;
+  }catch(err){
+    if(controller.signal.aborted)throw new Error('The server took too long to respond. Your changes are still in this form. Please try saving again.');
+    throw err;
+  }finally{
+    clearTimeout(timeout);
+  }
 }
 // Browser storage is only a lightweight cache. PostgreSQL/server state is authoritative.
 // Never cache image data URLs locally: even optimized construction photos can quickly exceed
@@ -2066,7 +2075,14 @@ function bindScheduleSave(w,close,request,successMessage,readValues){
     const backdropClick=w.onclick;
     w.onclick=null;
     try{
-      await sharedSyncChain;
+      // Bound the wait for prior uploads as well as this request, keeping the
+      // editor usable even if an earlier queued sync has stalled.
+      let waitTimer;
+      try{
+        await Promise.race([sharedSyncChain,new Promise((_,reject)=>{
+          waitTimer=setTimeout(()=>reject(new Error('An earlier save is still pending. Please try again shortly.')),60000);
+        })]);
+      }finally{clearTimeout(waitTimer);}
       const result=await apiJson('/api/admin/schedule',{method:'PUT',body:JSON.stringify({...request,values})});
       state=normalizeState(result.state);
       saveLocalState();

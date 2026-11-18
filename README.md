@@ -1,4 +1,8 @@
-# Kairos Legacy Homes — Investor Project Portal v2.12
+# Kairos Legacy Homes — Investor Project Portal v2.13
+
+## v2.13 — Reliable schedule saves
+
+Database connection failures no longer crash the portal. Database operations and browser requests have time limits; failed saves preserve the form and allow another attempt. Successful schedule edits are confirmed only after the transaction commits.
 
 ## v2.12 — Preserve client data when merging an administrator login
 

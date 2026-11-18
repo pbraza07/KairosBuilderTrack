@@ -128,7 +128,18 @@ async function initStorage() {
   if (DATABASE_URL) {
     storageMode = 'postgres';
     const { Pool } = require('pg');
-    pool = new Pool({ connectionString: DATABASE_URL });
+    pool = new Pool({
+      connectionString: DATABASE_URL,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 10000,
+      statement_timeout: 10000,
+      query_timeout: 12000,
+      idle_in_transaction_session_timeout: 15000,
+      keepAlive: true
+    });
+    // pg removes failed idle clients; handle the event so a dropped connection
+    // cannot crash the portal and strand an administrator's save request.
+    pool.on('error', error => console.error('Idle database connection error:', error.message));
     await pool.query(`CREATE TABLE IF NOT EXISTS kairos_portal_state (
       id INTEGER PRIMARY KEY,
       payload JSONB NOT NULL,
@@ -197,6 +208,9 @@ async function persistShared(reason = 'save', snapshot = shared) {
   snapshot.meta.storage = storageMode;
   if (storageMode === 'postgres') {
     const db = await pool.connect();
+    let connectionError;
+    const onConnectionError = error => { connectionError = error; };
+    db.on('error', onConnectionError);
     try {
       await db.query('BEGIN');
       await db.query(
@@ -208,10 +222,14 @@ async function persistShared(reason = 'save', snapshot = shared) {
       await createDatabaseBackup(reason, db, snapshot);
       await db.query('COMMIT');
     } catch (error) {
-      await db.query('ROLLBACK');
-      throw error;
+      // Preserve the original failure and evict this client. A broken connection
+      // may also reject ROLLBACK and must never re-enter the pool.
+      connectionError = connectionError || error;
+      try { await db.query('ROLLBACK'); } catch {}
+      throw Object.assign(new Error('Unable to save changes to the database. Please try again.'), { statusCode: 503, cause: error });
     } finally {
-      db.release();
+      db.release(connectionError);
+      db.removeListener('error', onConnectionError);
     }
     return;
   }
@@ -841,7 +859,7 @@ async function start() {
     const pathname = decodeURIComponent(parsed.pathname || '/');
 
     if (pathname === '/health' || pathname === '/healthz') {
-      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '2.12.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
+      return sendJson(res, 200, { status: 'ok', app: 'kairos-builder-portal', version: '2.13.0', sharedStorage: true, storageMode, persistentStorage: isPersistentStorage(), writeProtection: storageMode === 'blocked-ephemeral' });
     }
 
     if (pathname.startsWith('/api/')) {
